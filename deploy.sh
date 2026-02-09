@@ -10,6 +10,16 @@ log()  { echo -e "${GREEN}[deploy]${NC} $1"; }
 warn() { echo -e "${YELLOW}[warn]${NC} $1"; }
 err()  { echo -e "${RED}[error]${NC} $1"; exit 1; }
 
+DOCKER_CMD="docker"
+COMPOSE=""
+
+need_sudo() {
+  if ! docker info >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
 install_docker() {
   log "Docker not found. Installing Docker on Ubuntu..."
   sudo apt-get update -y
@@ -23,10 +33,10 @@ install_docker() {
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
   sudo apt-get update -y
   sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  sudo systemctl enable docker
+  sudo systemctl start docker
   sudo usermod -aG docker "$USER"
   log "Docker installed successfully."
-  warn "You were added to the docker group. If docker commands fail with permission errors,"
-  warn "log out and back in, then re-run this script."
 }
 
 check_deps() {
@@ -40,8 +50,15 @@ check_deps() {
     fi
   fi
 
-  if docker compose version >/dev/null 2>&1; then
-    COMPOSE="docker compose"
+  if need_sudo; then
+    log "Using sudo for docker commands (log out and back in to avoid this next time)."
+    DOCKER_CMD="sudo docker"
+  fi
+
+  if $DOCKER_CMD compose version >/dev/null 2>&1; then
+    COMPOSE="$DOCKER_CMD compose"
+  elif sudo docker-compose version >/dev/null 2>&1; then
+    COMPOSE="sudo docker-compose"
   elif command -v docker-compose >/dev/null 2>&1; then
     COMPOSE="docker-compose"
   else
@@ -81,18 +98,18 @@ case "$ACTION" in
     log "Waiting for services to start..."
     sleep 5
 
-    if $COMPOSE ps | grep -q "Up"; then
+    if $COMPOSE ps | grep -q "Up\|running"; then
       log "Deployment successful!"
       log "App is running at http://$(hostname -I | awk '{print $1}'):${PORT:-5000}"
       log ""
       log "Useful commands:"
-      log "  View logs:      $COMPOSE logs -f"
-      log "  View app logs:  $COMPOSE logs -f app"
-      log "  Stop:           $COMPOSE down"
-      log "  Restart:        $COMPOSE restart"
+      log "  View logs:      ./deploy.sh logs"
+      log "  View app logs:  ./deploy.sh logs app"
+      log "  Stop:           ./deploy.sh stop"
+      log "  Restart:        ./deploy.sh restart"
       log "  Rebuild:        ./deploy.sh deploy"
     else
-      err "Some services failed to start. Check logs with: $COMPOSE logs"
+      err "Some services failed to start. Check logs with: ./deploy.sh logs"
     fi
     ;;
 
