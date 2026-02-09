@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-boattracker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-boattracker}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-boattracker}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-boattracker}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-boattracker}
+      MQTT_BROKER_URL: ${MQTT_BROKER_URL:-mqtt://98.191.147.191:1883}
+      MQTT_USERNAME: ${MQTT_USERNAME:-boat_tracker}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-tbn123}
+      MQTT_TOPIC: ${MQTT_TOPIC:-msh/US/#,msh/2/#}
+      SESSION_SECRET: ${SESSION_SECRET:-change-this-to-a-random-string}
+
+volumes:
+  pgdata:
