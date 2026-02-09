@@ -7,7 +7,7 @@ Real-time boat GPS tracking system that receives position data from fishing boat
 - **Frontend**: React + TypeScript + Leaflet.js map with dark CARTO tiles
 - **Backend**: Express.js with Socket.io for real-time updates
 - **Database**: PostgreSQL for boat positions and metadata
-- **MQTT**: Connects to broker at 98.191.147.191:1883 (topic: msh/US/#)
+- **MQTT**: Connects to broker at 98.191.147.191:1883 (topics: msh/US/#, msh/2/#)
 
 ## Key Files
 - `shared/schema.ts` - Database schema (boats, boat_positions tables)
@@ -30,8 +30,10 @@ Real-time boat GPS tracking system that receives position data from fishing boat
 
 ## MQTT Message Format
 - Position messages: `{ type: "position", sender: "!id", payload: { latitude_i, longitude_i, altitude, sats_in_view, time } }`
-- NodeInfo messages: `{ type: "nodeinfo", sender: "!id", payload: { longName, shortName, hwModel } }`
+- NodeInfo messages: `{ type: "nodeinfo", sender: "!id", payload: { longname, shortname, hardware } }` (lowercase field names from Meshtastic)
 - Coordinates are integers divided by 10,000,000 to get decimal degrees
 
 ## Recent Changes
+- 2026-02-09: Added msh/2/# topic subscription (Boat 2 publishes to msh/2/ not msh/US/)
+- 2026-02-09: Fixed nodeinfo parser for lowercase field names (longname/shortname from Meshtastic)
 - 2026-02-09: Initial build - full GPS tracking system with MQTT, Socket.io, Leaflet map

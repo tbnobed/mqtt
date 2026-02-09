@@ -6,7 +6,7 @@ import type { Server as SocketServer } from "socket.io";
 const BROKER_URL = process.env.MQTT_BROKER_URL || "mqtt://98.191.147.191:1883";
 const MQTT_USERNAME = process.env.MQTT_USERNAME || "boat_tracker";
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD || "tbn123";
-const MQTT_TOPIC = process.env.MQTT_TOPIC || "msh/US/#";
+const MQTT_TOPICS = (process.env.MQTT_TOPIC || "msh/US/#,msh/2/#").split(",").map(t => t.trim());
 
 interface PositionPayload {
   latitude_i: number;
@@ -175,11 +175,11 @@ export function setupMQTT(io: SocketServer) {
   mqttClient.on("connect", () => {
     log("Connected to MQTT broker", "mqtt");
     isMqttConnected = true;
-    mqttClient!.subscribe(MQTT_TOPIC, { qos: 0 }, (err) => {
+    mqttClient!.subscribe(MQTT_TOPICS, { qos: 0 }, (err) => {
       if (err) {
         log(`MQTT subscribe error: ${err.message}`, "mqtt");
       } else {
-        log(`Subscribed to ${MQTT_TOPIC}`, "mqtt");
+        log(`Subscribed to ${MQTT_TOPICS.join(", ")}`, "mqtt");
       }
     });
     io.emit("mqtt:status", { connected: true });
