@@ -185,12 +185,23 @@ export function setupMQTT(io: SocketServer) {
     io.emit("mqtt:status", { connected: true });
   });
 
-  mqttClient.on("message", async (_topic, message) => {
+  mqttClient.on("message", async (topic, message) => {
     try {
       const raw = message.toString();
-      const msg = JSON.parse(raw);
+      let msg: any;
+      try {
+        msg = JSON.parse(raw);
+      } catch {
+        return;
+      }
 
-      if (!msg.type || !msg.sender) return;
+      if (!msg.type || !msg.sender) {
+        const keys = Object.keys(msg).join(",");
+        if (keys.length > 0) {
+          log(`MQTT unstructured msg on ${topic}: keys=[${keys}] ${raw.slice(0, 200)}`, "mqtt");
+        }
+        return;
+      }
 
       if (msg.type === "position" && msg.payload) {
         if (!isValidPositionPayload(msg.payload)) {
@@ -206,9 +217,10 @@ export function setupMQTT(io: SocketServer) {
         }
         await handleNodeInfoMessage(msg.sender, normalizeNodeInfoPayload(payload));
       } else {
-        log(`MQTT msg type="${msg.type}" from ${msg.sender}`, "mqtt");
+        log(`MQTT msg type="${msg.type}" from ${msg.sender}: ${raw.slice(0, 200)}`, "mqtt");
       }
-    } catch {
+    } catch (err: any) {
+      log(`MQTT message handler error: ${err.message}`, "mqtt");
     }
   });
 
