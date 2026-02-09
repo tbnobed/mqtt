@@ -12,24 +12,29 @@ interface BoatMapProps {
   boatColorMap: Map<string, string>;
 }
 
-function createBoatIcon(color: string, heading: number, offline: boolean, label: string, offsetX: number, offsetY: number): L.DivIcon {
+function createBoatIcon(color: string, heading: number, offline: boolean, label: string, offsetX: number, offsetY: number, selected: boolean): L.DivIcon {
   const opacity = offline ? 0.5 : 1;
   const rotation = heading || 0;
   const statusColor = offline ? "#ef4444" : "#22c55e";
+  const ringStyle = selected
+    ? `box-shadow:0 0 0 4px ${color}44, 0 0 12px ${color}88, 0 2px 8px rgba(0,0,0,0.3);border:3px solid #ffffff;`
+    : `box-shadow:0 2px 8px rgba(0,0,0,0.3);border:3px solid white;`;
+  const size = selected ? 42 : 36;
+  const svgSize = selected ? 20 : 18;
+  const anchor = Math.floor(size / 2);
   return L.divIcon({
     className: "boat-marker",
     html: `
-      <div style="position:relative;width:36px;height:36px;opacity:${opacity};transform:translate(${offsetX}px,${offsetY}px);" data-testid="marker-icon">
+      <div style="position:relative;width:${size}px;height:${size}px;opacity:${opacity};transform:translate(${offsetX}px,${offsetY}px);" data-testid="marker-icon">
         <div style="
-          width:36px;height:36px;
+          width:${size}px;height:${size}px;
           background:${color};
           border-radius:50%;
-          border:3px solid white;
-          box-shadow:0 2px 8px rgba(0,0,0,0.3);
+          ${ringStyle}
           display:flex;align-items:center;justify-content:center;
           position:relative;
         ">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="transform:rotate(${rotation}deg)">
+          <svg width="${svgSize}" height="${svgSize}" viewBox="0 0 24 24" fill="none" style="transform:rotate(${rotation}deg)">
             <path d="M12 2L6 20L12 16L18 20L12 2Z" fill="white" stroke="white" stroke-width="1"/>
           </svg>
         </div>
@@ -41,11 +46,11 @@ function createBoatIcon(color: string, heading: number, offline: boolean, label:
           border:2px solid white;
         "></div>
         <div style="
-          position:absolute;top:38px;left:50%;transform:translateX(-50%);
-          background:${color};
+          position:absolute;top:${size + 2}px;left:50%;transform:translateX(-50%);
+          background:${selected ? color : color + "cc"};
           color:white;
-          font-size:11px;font-weight:700;
-          padding:1px 6px;
+          font-size:${selected ? 12 : 11}px;font-weight:700;
+          padding:${selected ? "2px 8px" : "1px 6px"};
           border-radius:4px;
           white-space:nowrap;
           box-shadow:0 1px 4px rgba(0,0,0,0.4);
@@ -54,9 +59,9 @@ function createBoatIcon(color: string, heading: number, offline: boolean, label:
         ">${label}</div>
       </div>
     `,
-    iconSize: [36, 56],
-    iconAnchor: [18, 18],
-    popupAnchor: [0, -20],
+    iconSize: [size, size + 20],
+    iconAnchor: [anchor, anchor],
+    popupAnchor: [0, -anchor - 2],
   });
 }
 
@@ -137,7 +142,8 @@ export default function BoatMap({ boats, selectedBoatId, trackPositions, onSelec
       const color = boatColorMap.get(boat.id) || "#3b82f6";
       const offline = isOffline(boat.positionTimestamp || boat.lastSeen);
       const [ox, oy] = offsets.get(boat.id) || [0, 0];
-      const icon = createBoatIcon(color, boat.heading || 0, offline, boat.shortName, ox, oy);
+      const isSelected = boat.id === selectedBoatId;
+      const icon = createBoatIcon(color, boat.heading || 0, offline, boat.shortName, ox, oy, isSelected);
 
       let marker = markersRef.current.get(boat.id);
       if (marker) {
@@ -164,7 +170,7 @@ export default function BoatMap({ boats, selectedBoatId, trackPositions, onSelec
         markersRef.current.delete(id);
       }
     });
-  }, [boats, boatColorMap, onSelectBoat]);
+  }, [boats, boatColorMap, onSelectBoat, selectedBoatId]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -201,13 +207,19 @@ export default function BoatMap({ boats, selectedBoatId, trackPositions, onSelec
     }
   }, [trackPositions, selectedBoatId, boatColorMap]);
 
+  const prevSelectedRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!mapRef.current || !selectedBoatId) return;
+    if (!mapRef.current || !selectedBoatId) {
+      prevSelectedRef.current = selectedBoatId;
+      return;
+    }
+    if (prevSelectedRef.current === selectedBoatId) return;
+    prevSelectedRef.current = selectedBoatId;
     const boat = boats.find((b) => b.id === selectedBoatId);
     if (boat?.latitude !== undefined && boat?.longitude !== undefined) {
       mapRef.current.setView([boat.latitude, boat.longitude], 14, { animate: true });
     }
-  }, [selectedBoatId]);
+  }, [selectedBoatId, boats]);
 
   return (
     <div
