@@ -75,12 +75,24 @@ function isValidPositionPayload(payload: any): payload is PositionPayload {
   );
 }
 
-function isValidNodeInfoPayload(payload: any): payload is NodeInfoPayload {
+function isValidNodeInfoPayload(payload: any): boolean {
+  if (typeof payload !== "object" || payload === null) return false;
   return (
-    typeof payload === "object" &&
-    payload !== null &&
-    typeof payload.longName === "string"
+    typeof payload.longName === "string" ||
+    typeof payload.long_name === "string" ||
+    typeof payload.longname === "string" ||
+    typeof payload.shortName === "string" ||
+    typeof payload.short_name === "string" ||
+    typeof payload.shortname === "string"
   );
+}
+
+function normalizeNodeInfoPayload(payload: any): NodeInfoPayload {
+  return {
+    longName: payload.longName || payload.long_name || payload.longname || "",
+    shortName: payload.shortName || payload.short_name || payload.shortname || "",
+    hwModel: payload.hwModel || payload.hw_model || payload.hardware?.toString() || undefined,
+  };
 }
 
 async function handlePositionMessage(sender: string, payload: PositionPayload) {
@@ -176,25 +188,27 @@ export function setupMQTT(io: SocketServer) {
   mqttClient.on("message", async (_topic, message) => {
     try {
       const raw = message.toString();
-      const msg: MQTTMessage = JSON.parse(raw);
+      const msg = JSON.parse(raw);
 
-      if (!msg.type || !msg.sender || !msg.payload) return;
+      if (!msg.type || !msg.sender) return;
 
-      if (msg.type === "position") {
+      if (msg.type === "position" && msg.payload) {
         if (!isValidPositionPayload(msg.payload)) {
-          log(`Invalid position payload from ${msg.sender}`, "mqtt");
+          log(`Invalid position payload from ${msg.sender}: ${JSON.stringify(msg.payload).slice(0, 200)}`, "mqtt");
           return;
         }
         await handlePositionMessage(msg.sender, msg.payload);
       } else if (msg.type === "nodeinfo") {
-        if (!isValidNodeInfoPayload(msg.payload)) {
-          log(`Invalid nodeinfo payload from ${msg.sender}`, "mqtt");
+        const payload = msg.payload || msg;
+        if (!isValidNodeInfoPayload(payload)) {
+          log(`Invalid nodeinfo payload from ${msg.sender}: ${JSON.stringify(msg).slice(0, 300)}`, "mqtt");
           return;
         }
-        await handleNodeInfoMessage(msg.sender, msg.payload);
+        await handleNodeInfoMessage(msg.sender, normalizeNodeInfoPayload(payload));
+      } else {
+        log(`MQTT msg type="${msg.type}" from ${msg.sender}`, "mqtt");
       }
-    } catch (err: any) {
-      log(`MQTT message parse error: ${err.message}`, "mqtt");
+    } catch {
     }
   });
 
