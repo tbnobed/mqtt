@@ -1,0 +1,112 @@
+import { Navigation, Satellite, Mountain, Clock, Waves, ArrowUp } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import type { BoatData, BoatPositionData } from "@/lib/types";
+import { formatCoord, formatTimestamp, getTimeSince, isOffline, formatSpeed } from "@/lib/types";
+
+interface BoatInfoPanelProps {
+  boat: BoatData;
+  trackPositions: BoatPositionData[];
+  color: string;
+  onClose: () => void;
+}
+
+export default function BoatInfoPanel({ boat, trackPositions, color, onClose }: BoatInfoPanelProps) {
+  const offline = isOffline(boat.positionTimestamp || boat.lastSeen);
+  const lastTs = boat.positionTimestamp || boat.lastSeen;
+
+  return (
+    <Card className="p-4 space-y-4" data-testid="boat-info-panel">
+      <div className="flex items-start justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0">
+          <div
+            className="w-4 h-4 rounded-full shrink-0"
+            style={{ backgroundColor: color }}
+          />
+          <div className="min-w-0">
+            <h3 className="font-semibold text-sm truncate" data-testid="text-boat-name">{boat.longName}</h3>
+            <p className="text-xs text-muted-foreground">{boat.shortName} &middot; {boat.id}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge
+            variant={offline ? "destructive" : "default"}
+            className="text-xs"
+            data-testid="badge-status"
+          >
+            {offline ? "Offline" : "Online"}
+          </Badge>
+          <Button size="icon" variant="ghost" onClick={onClose} data-testid="button-close-panel">
+            <ArrowUp className="w-4 h-4 rotate-90" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <InfoItem
+          icon={<Navigation className="w-3.5 h-3.5" />}
+          label="Latitude"
+          value={formatCoord(boat.latitude, "lat")}
+          testId="text-latitude"
+        />
+        <InfoItem
+          icon={<Navigation className="w-3.5 h-3.5 rotate-90" />}
+          label="Longitude"
+          value={formatCoord(boat.longitude, "lon")}
+          testId="text-longitude"
+        />
+        <InfoItem
+          icon={<Mountain className="w-3.5 h-3.5" />}
+          label="Altitude"
+          value={boat.altitude !== undefined ? `${boat.altitude}m` : "N/A"}
+          testId="text-altitude"
+        />
+        <InfoItem
+          icon={<Satellite className="w-3.5 h-3.5" />}
+          label="Satellites"
+          value={boat.satellites !== undefined ? `${boat.satellites}` : "N/A"}
+          testId="text-satellites"
+        />
+        <InfoItem
+          icon={<Waves className="w-3.5 h-3.5" />}
+          label="Speed"
+          value={formatSpeed(boat.speed)}
+          testId="text-speed"
+        />
+        <InfoItem
+          icon={<Clock className="w-3.5 h-3.5" />}
+          label="Last Update"
+          value={getTimeSince(lastTs)}
+          testId="text-last-update"
+        />
+      </div>
+
+      {boat.hwModel && (
+        <p className="text-xs text-muted-foreground">
+          Device: {boat.hwModel}
+        </p>
+      )}
+
+      {trackPositions.length > 0 && (
+        <div className="pt-2 border-t border-border">
+          <p className="text-xs text-muted-foreground">
+            Track history: {trackPositions.length} positions
+          </p>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function InfoItem({ icon, label, value, testId }: { icon: React.ReactNode; label: string; value: string; testId: string }) {
+  return (
+    <div className="flex items-start gap-2">
+      <div className="text-muted-foreground mt-0.5">{icon}</div>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-sm font-medium truncate" data-testid={testId}>{value}</p>
+      </div>
+    </div>
+  );
+}
