@@ -20,3 +20,8 @@ CREATE TABLE IF NOT EXISTS boat_positions (
 
 CREATE INDEX IF NOT EXISTS idx_bp_boat_id ON boat_positions(boat_id);
 CREATE INDEX IF NOT EXISTS idx_bp_timestamp ON boat_positions(boat_id, timestamp DESC);
+
+INSERT INTO boats (id, long_name, short_name) VALUES
+  ('!849ac898', 'Boat 1', 'BT1'),
+  ('!8499d634', 'Boat 2', 'BT2')
+ON CONFLICT (id) DO NOTHING;
