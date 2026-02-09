@@ -10,10 +10,35 @@ log()  { echo -e "${GREEN}[deploy]${NC} $1"; }
 warn() { echo -e "${YELLOW}[warn]${NC} $1"; }
 err()  { echo -e "${RED}[error]${NC} $1"; exit 1; }
 
+install_docker() {
+  log "Docker not found. Installing Docker on Ubuntu..."
+  sudo apt-get update -y
+  sudo apt-get install -y ca-certificates curl gnupg
+  sudo install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg 2>/dev/null || true
+  sudo chmod a+r /etc/apt/keyrings/docker.gpg
+  echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+    $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  sudo apt-get update -y
+  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  sudo usermod -aG docker "$USER"
+  log "Docker installed successfully."
+  warn "You were added to the docker group. If docker commands fail with permission errors,"
+  warn "log out and back in, then re-run this script."
+}
+
 check_deps() {
-  for cmd in docker; do
-    command -v "$cmd" >/dev/null 2>&1 || err "$cmd is required but not installed."
-  done
+  if ! command -v docker >/dev/null 2>&1; then
+    warn "Docker is not installed."
+    read -p "Install Docker now? (y/n): " install_choice
+    if [ "$install_choice" = "y" ] || [ "$install_choice" = "Y" ]; then
+      install_docker
+    else
+      err "Docker is required. Install it manually: https://docs.docker.com/engine/install/ubuntu/"
+    fi
+  fi
 
   if docker compose version >/dev/null 2>&1; then
     COMPOSE="docker compose"
