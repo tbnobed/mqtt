@@ -12,13 +12,14 @@ interface BoatMapProps {
   boatColorMap: Map<string, string>;
 }
 
-function createBoatIcon(color: string, heading: number, offline: boolean): L.DivIcon {
+function createBoatIcon(color: string, heading: number, offline: boolean, label: string, offsetX: number, offsetY: number): L.DivIcon {
   const opacity = offline ? 0.5 : 1;
   const rotation = heading || 0;
+  const statusColor = offline ? "#ef4444" : "#22c55e";
   return L.divIcon({
     className: "boat-marker",
     html: `
-      <div style="position:relative;width:36px;height:36px;opacity:${opacity};" data-testid="marker-icon">
+      <div style="position:relative;width:36px;height:36px;opacity:${opacity};transform:translate(${offsetX}px,${offsetY}px);" data-testid="marker-icon">
         <div style="
           width:36px;height:36px;
           background:${color};
@@ -32,25 +33,65 @@ function createBoatIcon(color: string, heading: number, offline: boolean): L.Div
             <path d="M12 2L6 20L12 16L18 20L12 2Z" fill="white" stroke="white" stroke-width="1"/>
           </svg>
         </div>
-        ${offline ? `<div style="
+        <div style="
           position:absolute;top:-4px;right:-4px;
           width:12px;height:12px;
-          background:#ef4444;
+          background:${statusColor};
           border-radius:50%;
           border:2px solid white;
-        "></div>` : `<div style="
-          position:absolute;top:-4px;right:-4px;
-          width:12px;height:12px;
-          background:#22c55e;
-          border-radius:50%;
-          border:2px solid white;
-        "></div>`}
+        "></div>
+        <div style="
+          position:absolute;top:38px;left:50%;transform:translateX(-50%);
+          background:${color};
+          color:white;
+          font-size:11px;font-weight:700;
+          padding:1px 6px;
+          border-radius:4px;
+          white-space:nowrap;
+          box-shadow:0 1px 4px rgba(0,0,0,0.4);
+          letter-spacing:0.5px;
+          font-family:system-ui,sans-serif;
+        ">${label}</div>
       </div>
     `,
-    iconSize: [36, 36],
+    iconSize: [36, 56],
     iconAnchor: [18, 18],
     popupAnchor: [0, -20],
   });
+}
+
+function computeOffsets(boats: BoatData[]): Map<string, [number, number]> {
+  const offsets = new Map<string, [number, number]>();
+  const threshold = 0.0001;
+  const groups: BoatData[][] = [];
+
+  const assigned = new Set<string>();
+  boats.forEach((boat) => {
+    if (assigned.has(boat.id) || boat.latitude === undefined || boat.longitude === undefined) return;
+    const group = [boat];
+    assigned.add(boat.id);
+    boats.forEach((other) => {
+      if (assigned.has(other.id) || other.latitude === undefined || other.longitude === undefined) return;
+      if (
+        Math.abs((boat.latitude ?? 0) - (other.latitude ?? 0)) < threshold &&
+        Math.abs((boat.longitude ?? 0) - (other.longitude ?? 0)) < threshold
+      ) {
+        group.push(other);
+        assigned.add(other.id);
+      }
+    });
+    if (group.length > 1) groups.push(group);
+  });
+
+  groups.forEach((group) => {
+    const spread = 22;
+    group.forEach((boat, i) => {
+      const angle = (2 * Math.PI * i) / group.length - Math.PI / 2;
+      offsets.set(boat.id, [Math.cos(angle) * spread, Math.sin(angle) * spread]);
+    });
+  });
+
+  return offsets;
 }
 
 export default function BoatMap({ boats, selectedBoatId, trackPositions, onSelectBoat, boatColorMap }: BoatMapProps) {
@@ -88,13 +129,15 @@ export default function BoatMap({ boats, selectedBoatId, trackPositions, onSelec
     if (!mapRef.current) return;
     const map = mapRef.current;
     const existingIds = new Set<string>();
+    const offsets = computeOffsets(boats);
 
     boats.forEach((boat) => {
       if (boat.latitude === undefined || boat.longitude === undefined) return;
       existingIds.add(boat.id);
       const color = boatColorMap.get(boat.id) || "#3b82f6";
       const offline = isOffline(boat.positionTimestamp || boat.lastSeen);
-      const icon = createBoatIcon(color, boat.heading || 0, offline);
+      const [ox, oy] = offsets.get(boat.id) || [0, 0];
+      const icon = createBoatIcon(color, boat.heading || 0, offline, boat.shortName, ox, oy);
 
       let marker = markersRef.current.get(boat.id);
       if (marker) {
