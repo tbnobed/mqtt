@@ -1,0 +1,115 @@
+Here's a comprehensive prompt for Replit Agent:
+
+Build a Real-Time Boat GPS Tracking System
+Create a Node.js web application that tracks fishing boats via MQTT and displays them on a live map.
+MQTT Configuration:
+
+Broker: 98.191.147.191:1883
+Username: boat_tracker
+Password: tbn123
+Subscribe to topic: msh/US/#
+
+Incoming MQTT Message Format:
+Position messages (every 60 seconds):
+json{
+  "type": "position",
+  "sender": "!849ac898",
+  "payload": {
+    "latitude_i": 336330752,
+    "longitude_i": -1178861568,
+    "altitude": 29,
+    "sats_in_view": 22,
+    "time": 1770671218
+  }
+}
+Nodeinfo messages (device names, sent every 3 hours):
+json{
+  "type": "nodeinfo",
+  "sender": "!849ac898",
+  "payload": {
+    "longName": "Boat 1",
+    "shortName": "BT1",
+    "hwModel": "HELTEC_WIRELESS_TRACKER"
+  }
+}
+CRITICAL: Coordinates are in integer format. Convert to decimal degrees by dividing by 10,000,000:
+
+latitude_i: 336330752 → 33.6330752°
+longitude_i: -1178861568 → -117.8861568°
+
+Requirements:
+
+MQTT Subscriber:
+
+Connect to MQTT broker using mqtt npm package
+Subscribe to msh/US/# topic
+Parse JSON messages
+Build a lookup table mapping device IDs to boat names from nodeinfo messages
+Convert integer coordinates to decimal degrees
+
+
+Database (SQLite):
+
+Store boat positions with: boat_id, name, latitude, longitude, altitude, timestamp, satellites
+Keep last 1000 positions per boat (for track history)
+
+
+REST API Endpoints:
+
+GET /api/boats - Returns current position of all boats in JSON
+GET /api/boats/:id - Returns specific boat's current position + last 50 positions (track)
+GET /api/xpression - Simple JSON format for Xpression broadcast graphics (just current positions)
+
+
+
+Xpression API Format:
+json{
+  "boats": [
+    {
+      "id": "!849ac898",
+      "name": "Boat 1",
+      "lat": 33.6330752,
+      "lon": -117.8861568,
+      "altitude": 29,
+      "satellites": 22,
+      "timestamp": "2026-02-09T18:30:00Z"
+    }
+  ]
+}
+
+Web Dashboard (Frontend):
+
+Use Leaflet.js for interactive map
+Display all boats as markers on the map
+Show boat name and last update time on marker
+Auto-refresh positions every 5 seconds via WebSocket or polling
+Show boat tracks (last 50 positions as a polyline)
+Use different colored markers for each boat
+Display info panel showing: boat name, coordinates, altitude, satellite count, last update time
+Mobile-responsive design
+
+
+Real-Time Updates:
+
+Use Socket.io to push position updates to connected web clients
+Broadcast new positions immediately when received via MQTT
+
+
+
+Tech Stack:
+
+Backend: Node.js + Express
+MQTT Client: mqtt package
+Database: SQLite with better-sqlite3
+Real-time: Socket.io
+Frontend: HTML/CSS/JavaScript with Leaflet.js for maps
+Map Tiles: OpenStreetMap
+
+Bonus Features:
+
+Show "last seen" time for each boat
+Indicate if boat hasn't updated in 5+ minutes (offline warning)
+Calculate and display boat speed based on position changes
+Show boat heading/direction arrow on map
+
+Make it production-ready with error handling, reconnection logic for MQTT, and clean UI design suitable for a fishing competition broadcast control room.
