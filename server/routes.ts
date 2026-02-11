@@ -110,6 +110,8 @@ export async function registerRoutes(
             lon: b.longitude,
             altitude: b.altitude ?? 0,
             satellites: b.satellites ?? 0,
+            speed: b.speed ?? 0,
+            heading: b.heading ?? 0,
             timestamp: b.positionTimestamp
               ? new Date(b.positionTimestamp).toISOString()
               : null,
