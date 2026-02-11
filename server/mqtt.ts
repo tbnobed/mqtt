@@ -14,10 +14,6 @@ interface PositionPayload {
   altitude?: number;
   sats_in_view?: number;
   time?: number;
-  ground_speed?: number;
-  ground_track?: number;
-  precision_bits?: number;
-  PDOP?: number;
 }
 
 interface NodeInfoPayload {
@@ -100,7 +96,6 @@ function normalizeNodeInfoPayload(payload: any): NodeInfoPayload {
 }
 
 async function handlePositionMessage(sender: string, payload: PositionPayload) {
-  log(`Raw payload from ${sender}: lat_i=${payload.latitude_i} lon_i=${payload.longitude_i} alt=${payload.altitude} sats=${payload.sats_in_view} time=${payload.time}`, "mqtt");
   const latitude = payload.latitude_i / 10000000;
   const longitude = payload.longitude_i / 10000000;
 
@@ -114,34 +109,16 @@ async function handlePositionMessage(sender: string, payload: PositionPayload) {
 
   let speed = 0;
   let heading = 0;
+  const prev = lastPositions.get(sender);
   const currentTime = payload.time || Math.floor(Date.now() / 1000);
 
-  if (payload.ground_speed !== undefined && payload.ground_speed > 0) {
-    speed = payload.ground_speed * 1.94384;
-    log(`Using device ground_speed: ${payload.ground_speed} m/s = ${speed.toFixed(1)} kts`, "mqtt");
-  }
-
-  if (payload.ground_track !== undefined && payload.ground_track > 0) {
-    heading = payload.ground_track / 100000;
-    log(`Using device ground_track: ${payload.ground_track} = ${heading.toFixed(1)}°`, "mqtt");
-  }
-
-  if (speed === 0 || heading === 0) {
-    const prev = lastPositions.get(sender);
-    if (prev) {
-      const calcSpeed = calculateSpeed(prev.lat, prev.lng, prev.time, latitude, longitude, currentTime);
-      const calcHeading = calculateHeading(prev.lat, prev.lng, latitude, longitude);
-      const precisionBits = payload.precision_bits || 32;
-      if (precisionBits >= 20 && calcSpeed < 500) {
-        if (speed === 0 && calcSpeed >= 0.1) speed = calcSpeed;
-        if (heading === 0) heading = calcHeading;
-      }
+  if (prev) {
+    speed = calculateSpeed(prev.lat, prev.lng, prev.time, latitude, longitude, currentTime);
+    heading = calculateHeading(prev.lat, prev.lng, latitude, longitude);
+    if (speed < 0.1) {
+      speed = 0;
+      heading = 0;
     }
-  }
-
-  if (speed < 0.1) {
-    speed = 0;
-    heading = 0;
   }
 
   lastPositions.set(sender, { lat: latitude, lng: longitude, time: currentTime });
@@ -220,7 +197,6 @@ export function setupMQTT(io: SocketServer) {
           log(`Invalid position payload from ${msg.sender}: ${JSON.stringify(msg.payload).slice(0, 200)}`, "mqtt");
           return;
         }
-        log(`Full position msg from ${msg.sender}: ${JSON.stringify(msg.payload).slice(0, 500)}`, "mqtt");
         await handlePositionMessage(msg.sender, msg.payload);
       } else if (msg.type === "nodeinfo") {
         const payload = msg.payload || msg;

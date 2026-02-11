@@ -49,17 +49,11 @@ export default function Dashboard() {
   const toggleBoatVisibility = useCallback((id: string) => {
     setHiddenBoatIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-        if (selectedBoatIdRef.current === id) {
-          selectBoat(null);
-        }
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
-  }, [selectBoat]);
+  }, []);
 
   const boatColorMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -68,9 +62,8 @@ export default function Dashboard() {
   }, [boats.map((b) => b.id).join(",")]);
 
   const trackPositions = useMemo(() => {
-    if (selectedBoatId && hiddenBoatIds.has(selectedBoatId)) return [];
     return selectedTrack?.positions || [];
-  }, [selectedTrack, selectedBoatId, hiddenBoatIds]);
+  }, [selectedTrack]);
 
   const selectedBoat = useMemo(() => {
     if (!selectedBoatId) return null;
