@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { getBoatColor } from "@/lib/types";
-import { getSocket } from "@/lib/socket";
+import { useOverlayController } from "@/hooks/use-overlay-sync";
 
 interface HistoryBoat {
   id: string;
@@ -51,10 +51,7 @@ function todayStr(): string {
 
 export default function History() {
   const [, setLocation] = useLocation();
-  const [date, setDate] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("date") || todayStr();
-  });
+  const [date, setDate] = useState(todayStr());
   const [tracks, setTracks] = useState<HistoryTrack[]>([]);
   const [loading, setLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
@@ -62,15 +59,28 @@ export default function History() {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const layersRef = useRef<L.LayerGroup | null>(null);
+  const { sendState } = useOverlayController();
+  const lastViewRef = useRef<{ center: [number, number]; zoom: number }>({ center: [33.63, -117.89], zoom: 12 });
+  const selectedBoatIdRef = useRef(selectedBoatId);
+  selectedBoatIdRef.current = selectedBoatId;
+  const dateRef = useRef(date);
+  dateRef.current = date;
+  const sendStateRef = useRef(sendState);
+  sendStateRef.current = sendState;
 
-  const isOverlay = new URLSearchParams(window.location.search).get("overlay") === "1";
+  const emitOverlayState = useCallback((overrides?: { selectedBoatId?: string | null; date?: string }) => {
+    sendStateRef.current({
+      mode: "history",
+      center: lastViewRef.current.center,
+      zoom: lastViewRef.current.zoom,
+      selectedBoatId: overrides?.selectedBoatId !== undefined ? overrides.selectedBoatId : selectedBoatIdRef.current,
+      historyDate: overrides?.date || dateRef.current,
+    });
+  }, []);
 
   useEffect(() => {
-    if (!isOverlay) {
-      const socket = getSocket();
-      socket.emit("overlay:navigate", { path: `/history?date=${date}` });
-    }
-  }, [isOverlay, date]);
+    emitOverlayState({ date });
+  }, [date]);
 
   useEffect(() => {
     fetch("/api/history/dates")
@@ -97,23 +107,29 @@ export default function History() {
     const map = L.map(mapContainerRef.current, {
       center: [33.63, -117.89],
       zoom: 12,
-      zoomControl: !isOverlay,
-      dragging: !isOverlay,
-      scrollWheelZoom: !isOverlay,
-      doubleClickZoom: !isOverlay,
-      touchZoom: !isOverlay,
-      boxZoom: !isOverlay,
-      keyboard: !isOverlay,
+      zoomControl: true,
     });
 
-    if (!isOverlay) {
-      L.control.zoom({ position: "topright" }).addTo(map);
-    }
+    L.control.zoom({ position: "topright" }).addTo(map);
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
       maxZoom: 19,
     }).addTo(map);
+
+    const emitMapView = () => {
+      const c = map.getCenter();
+      lastViewRef.current = { center: [c.lat, c.lng], zoom: map.getZoom() };
+      sendStateRef.current({
+        mode: "history",
+        center: [c.lat, c.lng],
+        zoom: map.getZoom(),
+        selectedBoatId: selectedBoatIdRef.current,
+        historyDate: dateRef.current,
+      });
+    };
+    map.on("moveend", emitMapView);
+    map.on("zoomend", emitMapView);
 
     layersRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
@@ -212,12 +228,12 @@ export default function History() {
         iconSize: [0, 0],
         iconAnchor: [0, 0],
       });
-      const labelMarker = L.marker([midPos.latitude, midPos.longitude], { icon: label, interactive: !isOverlay });
-      if (!isOverlay) {
-        labelMarker.on("click", () => setSelectedBoatId(
-          selectedBoatId === track.boat.id ? null : track.boat.id
-        ));
-      }
+      const labelMarker = L.marker([midPos.latitude, midPos.longitude], { icon: label, interactive: true });
+      labelMarker.on("click", () => {
+        const newId = selectedBoatId === track.boat.id ? null : track.boat.id;
+        setSelectedBoatId(newId);
+        emitOverlayState({ selectedBoatId: newId });
+      });
       layersRef.current!.addLayer(labelMarker);
     });
 
@@ -242,18 +258,19 @@ export default function History() {
     setDate(e.target.value);
   }, []);
 
-  if (isOverlay) {
-    return (
-      <div className="w-full h-screen overflow-hidden" data-testid="history-overlay">
-        <div
-          ref={mapContainerRef}
-          data-testid="history-map-container"
-          className="w-full h-full"
-          style={{ minHeight: "100%" }}
-        />
-      </div>
-    );
-  }
+  const handleSelectBoat = useCallback((boatId: string) => {
+    setSelectedBoatId((prev) => {
+      const newId = prev === boatId ? null : boatId;
+      sendStateRef.current({
+        mode: "history",
+        center: lastViewRef.current.center,
+        zoom: lastViewRef.current.zoom,
+        selectedBoatId: newId,
+        historyDate: dateRef.current,
+      });
+      return newId;
+    });
+  }, []);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background" data-testid="history-page">
@@ -339,7 +356,7 @@ export default function History() {
                     <button
                       key={track.boat.id}
                       data-testid={`button-history-boat-${track.boat.id}`}
-                      onClick={() => setSelectedBoatId(isSelected ? null : track.boat.id)}
+                      onClick={() => handleSelectBoat(track.boat.id)}
                       className={`
                         w-full text-left rounded-md p-3 transition-colors
                         ${isSelected ? "bg-accent" : "hover-elevate"}
