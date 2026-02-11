@@ -82,4 +82,5 @@ export interface OverlayState {
   zoom: number;
   selectedBoatId: string | null;
   historyDate?: string;
+  hiddenBoatIds?: string[];
 }

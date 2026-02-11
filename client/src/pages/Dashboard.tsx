@@ -16,38 +16,43 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { boats, selectedBoatId, selectedTrack, connected, mqttConnected, selectBoat, refreshBoats } = useBoats();
   const [panelOpen, setPanelOpen] = useState(true);
+  const [hiddenBoatIds, setHiddenBoatIds] = useState<Set<string>>(new Set());
   const { sendState } = useOverlayController();
   const lastViewRef = useRef<{ center: [number, number]; zoom: number }>({ center: [33.63, -117.89], zoom: 12 });
   const sendStateRef = useRef(sendState);
   sendStateRef.current = sendState;
   const selectedBoatIdRef = useRef(selectedBoatId);
   selectedBoatIdRef.current = selectedBoatId;
+  const hiddenBoatIdsRef = useRef(hiddenBoatIds);
+  hiddenBoatIdsRef.current = hiddenBoatIds;
+
+  const makeOverlayState = useCallback((overrides?: Partial<{ selectedBoatId: string | null; center: [number, number]; zoom: number }>) => ({
+    mode: "live" as const,
+    center: overrides?.center ?? lastViewRef.current.center,
+    zoom: overrides?.zoom ?? lastViewRef.current.zoom,
+    selectedBoatId: overrides?.selectedBoatId !== undefined ? overrides.selectedBoatId : selectedBoatIdRef.current,
+    hiddenBoatIds: Array.from(hiddenBoatIdsRef.current),
+  }), []);
 
   useEffect(() => {
-    sendState({
-      mode: "live",
-      center: lastViewRef.current.center,
-      zoom: lastViewRef.current.zoom,
-      selectedBoatId,
-    });
-  }, [selectedBoatId]);
+    sendState(makeOverlayState());
+  }, [selectedBoatId, hiddenBoatIds]);
 
   useEffect(() => {
-    sendStateRef.current({
-      mode: "live",
-      center: lastViewRef.current.center,
-      zoom: lastViewRef.current.zoom,
-      selectedBoatId: selectedBoatIdRef.current,
-    });
+    sendStateRef.current(makeOverlayState());
     const timer = setTimeout(() => {
-      sendStateRef.current({
-        mode: "live",
-        center: lastViewRef.current.center,
-        zoom: lastViewRef.current.zoom,
-        selectedBoatId: selectedBoatIdRef.current,
-      });
+      sendStateRef.current(makeOverlayState());
     }, 500);
     return () => clearTimeout(timer);
+  }, []);
+
+  const toggleBoatVisibility = useCallback((id: string) => {
+    setHiddenBoatIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }, []);
 
   const boatColorMap = useMemo(() => {
@@ -65,41 +70,30 @@ export default function Dashboard() {
     return boats.find((b) => b.id === selectedBoatId) || selectedTrack?.boat || null;
   }, [selectedBoatId, boats, selectedTrack]);
 
+  const visibleBoats = useMemo(() => {
+    return boats.filter((b) => !hiddenBoatIds.has(b.id));
+  }, [boats, hiddenBoatIds]);
+
   const handleSelectBoat = useCallback(
     (id: string | null) => {
       selectBoat(id);
-      sendState({
-        mode: "live",
-        center: lastViewRef.current.center,
-        zoom: lastViewRef.current.zoom,
-        selectedBoatId: id,
-      });
+      sendState(makeOverlayState({ selectedBoatId: id }));
     },
-    [selectBoat, sendState]
+    [selectBoat, sendState, makeOverlayState]
   );
 
   const handleViewChange = useCallback(
     (center: [number, number], zoom: number) => {
       lastViewRef.current = { center, zoom };
-      sendState({
-        mode: "live",
-        center,
-        zoom,
-        selectedBoatId,
-      });
+      sendState(makeOverlayState({ center, zoom }));
     },
-    [sendState, selectedBoatId]
+    [sendState, makeOverlayState]
   );
 
   const openOverlay = useCallback(() => {
-    sendState({
-      mode: "live",
-      center: lastViewRef.current.center,
-      zoom: lastViewRef.current.zoom,
-      selectedBoatId,
-    });
+    sendState(makeOverlayState());
     window.open("/overlay", "boat-tracker-overlay", "width=1920,height=1080,menubar=no,toolbar=no,location=no,status=no");
-  }, [sendState, selectedBoatId]);
+  }, [sendState, makeOverlayState]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background" data-testid="dashboard">
@@ -155,6 +149,8 @@ export default function Dashboard() {
                 selectedBoatId={selectedBoatId}
                 onSelectBoat={handleSelectBoat}
                 boatColorMap={boatColorMap}
+                hiddenBoatIds={hiddenBoatIds}
+                onToggleVisibility={toggleBoatVisibility}
               />
             </div>
           </ScrollArea>
@@ -200,7 +196,7 @@ export default function Dashboard() {
         )}
 
         <BoatMap
-          boats={boats}
+          boats={visibleBoats}
           selectedBoatId={selectedBoatId}
           trackPositions={trackPositions}
           onSelectBoat={handleSelectBoat}

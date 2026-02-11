@@ -20,6 +20,7 @@ export default function Overlay() {
   const [historyDate, setHistoryDate] = useState<string>("");
   const [historySelectedBoatId, setHistorySelectedBoatId] = useState<string | null>(null);
   const [historyTracks, setHistoryTracks] = useState<HistoryTrack[]>([]);
+  const [hiddenBoatIds, setHiddenBoatIds] = useState<Set<string>>(new Set());
 
   const historyMapRef = useRef<L.Map | null>(null);
   const historyMapContainerRef = useRef<HTMLDivElement>(null);
@@ -30,6 +31,7 @@ export default function Overlay() {
     setMode(state.mode);
     setControlledCenter(state.center);
     setControlledZoom(state.zoom);
+    setHiddenBoatIds(new Set(state.hiddenBoatIds || []));
 
     if (state.mode === "live") {
       if (state.selectedBoatId !== selectedBoatId) {
@@ -192,6 +194,10 @@ export default function Overlay() {
     return map;
   }, [boats.map((b) => b.id).join(",")]);
 
+  const visibleBoats = useMemo(() => {
+    return boats.filter((b) => !hiddenBoatIds.has(b.id));
+  }, [boats, hiddenBoatIds]);
+
   const trackPositions = useMemo(() => {
     return selectedTrack?.positions || [];
   }, [selectedTrack]);
@@ -206,7 +212,7 @@ export default function Overlay() {
     >
       <div style={{ display: mode === "live" ? "block" : "none" }} className="w-full h-full">
         <BoatMap
-          boats={boats}
+          boats={visibleBoats}
           selectedBoatId={selectedBoatId}
           trackPositions={trackPositions}
           onSelectBoat={noop}
