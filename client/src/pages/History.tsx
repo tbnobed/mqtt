@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { getBoatColor } from "@/lib/types";
+import { getSocket } from "@/lib/socket";
 
 interface HistoryBoat {
   id: string;
@@ -50,7 +51,10 @@ function todayStr(): string {
 
 export default function History() {
   const [, setLocation] = useLocation();
-  const [date, setDate] = useState(todayStr());
+  const [date, setDate] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("date") || todayStr();
+  });
   const [tracks, setTracks] = useState<HistoryTrack[]>([]);
   const [loading, setLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
@@ -58,6 +62,15 @@ export default function History() {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const layersRef = useRef<L.LayerGroup | null>(null);
+
+  const isOverlay = new URLSearchParams(window.location.search).get("overlay") === "1";
+
+  useEffect(() => {
+    if (!isOverlay) {
+      const socket = getSocket();
+      socket.emit("overlay:navigate", { path: `/history?date=${date}` });
+    }
+  }, [isOverlay, date]);
 
   useEffect(() => {
     fetch("/api/history/dates")
@@ -84,10 +97,18 @@ export default function History() {
     const map = L.map(mapContainerRef.current, {
       center: [33.63, -117.89],
       zoom: 12,
-      zoomControl: false,
+      zoomControl: !isOverlay,
+      dragging: !isOverlay,
+      scrollWheelZoom: !isOverlay,
+      doubleClickZoom: !isOverlay,
+      touchZoom: !isOverlay,
+      boxZoom: !isOverlay,
+      keyboard: !isOverlay,
     });
 
-    L.control.zoom({ position: "topright" }).addTo(map);
+    if (!isOverlay) {
+      L.control.zoom({ position: "topright" }).addTo(map);
+    }
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
@@ -191,10 +212,12 @@ export default function History() {
         iconSize: [0, 0],
         iconAnchor: [0, 0],
       });
-      const labelMarker = L.marker([midPos.latitude, midPos.longitude], { icon: label, interactive: true });
-      labelMarker.on("click", () => setSelectedBoatId(
-        selectedBoatId === track.boat.id ? null : track.boat.id
-      ));
+      const labelMarker = L.marker([midPos.latitude, midPos.longitude], { icon: label, interactive: !isOverlay });
+      if (!isOverlay) {
+        labelMarker.on("click", () => setSelectedBoatId(
+          selectedBoatId === track.boat.id ? null : track.boat.id
+        ));
+      }
       layersRef.current!.addLayer(labelMarker);
     });
 
@@ -218,6 +241,19 @@ export default function History() {
   const handleDateInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setDate(e.target.value);
   }, []);
+
+  if (isOverlay) {
+    return (
+      <div className="w-full h-screen overflow-hidden" data-testid="history-overlay">
+        <div
+          ref={mapContainerRef}
+          data-testid="history-map-container"
+          className="w-full h-full"
+          style={{ minHeight: "100%" }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background" data-testid="history-page">

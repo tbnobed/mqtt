@@ -47,7 +47,7 @@ export async function registerRoutes(
     transports: ["websocket", "polling"],
   });
 
-  let lastOverlayState: { center: [number, number]; zoom: number; selectedBoatId: string | null } | null = null;
+  let lastOverlayState: { path: string } | null = null;
 
   io.on("connection", async (socket) => {
     try {
@@ -56,14 +56,14 @@ export async function registerRoutes(
     } catch {}
     socket.emit("mqtt:status", { connected: getMqttStatus() });
 
-    socket.on("overlay:state", (state: { center: [number, number]; zoom: number; selectedBoatId: string | null }) => {
-      lastOverlayState = state;
-      socket.broadcast.emit("overlay:state", state);
+    socket.on("overlay:navigate", (data: { path: string }) => {
+      lastOverlayState = data;
+      socket.broadcast.emit("overlay:navigate", data);
     });
 
-    socket.on("overlay:request", () => {
+    socket.on("overlay:request-nav", () => {
       if (lastOverlayState) {
-        socket.emit("overlay:state", lastOverlayState);
+        socket.emit("overlay:navigate", lastOverlayState);
       }
     });
   });

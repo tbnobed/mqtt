@@ -1,34 +1,27 @@
-import { useMemo, useCallback, useState } from "react";
-import BoatMap from "@/components/BoatMap";
-import { useBoats } from "@/hooks/use-boats";
-import { useOverlayReceiver } from "@/hooks/use-overlay-sync";
-import { getBoatColor } from "@/lib/types";
-import type { OverlayState } from "@/lib/types";
+import { useEffect, useState, useRef } from "react";
+import { getSocket } from "@/lib/socket";
 
 export default function Overlay() {
-  const { boats, selectedBoatId, selectedTrack, selectBoat } = useBoats();
-  const [controlledCenter, setControlledCenter] = useState<[number, number]>([33.63, -117.89]);
-  const [controlledZoom, setControlledZoom] = useState(12);
+  const [currentPath, setCurrentPath] = useState("/");
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  useOverlayReceiver(useCallback((state: OverlayState) => {
-    setControlledCenter(state.center);
-    setControlledZoom(state.zoom);
-    if (state.selectedBoatId !== selectedBoatId) {
-      selectBoat(state.selectedBoatId);
-    }
-  }, [selectBoat, selectedBoatId]));
+  useEffect(() => {
+    const socket = getSocket();
 
-  const boatColorMap = useMemo(() => {
-    const map = new Map<string, string>();
-    boats.forEach((b, i) => map.set(b.id, getBoatColor(i)));
-    return map;
-  }, [boats.map((b) => b.id).join(",")]);
+    const handler = (data: { path: string }) => {
+      setCurrentPath(data.path);
+    };
 
-  const trackPositions = useMemo(() => {
-    return selectedTrack?.positions || [];
-  }, [selectedTrack]);
+    socket.on("overlay:navigate", handler);
+    socket.emit("overlay:request-nav");
 
-  const noop = useCallback(() => {}, []);
+    return () => {
+      socket.off("overlay:navigate", handler);
+    };
+  }, []);
+
+  const separator = currentPath.includes("?") ? "&" : "?";
+  const iframeSrc = `${currentPath}${separator}overlay=1`;
 
   return (
     <div
@@ -36,15 +29,13 @@ export default function Overlay() {
       style={{ background: "#000" }}
       data-testid="overlay-container"
     >
-      <BoatMap
-        boats={boats}
-        selectedBoatId={selectedBoatId}
-        trackPositions={trackPositions}
-        onSelectBoat={noop}
-        boatColorMap={boatColorMap}
-        viewOnly
-        controlledCenter={controlledCenter}
-        controlledZoom={controlledZoom}
+      <iframe
+        key={iframeSrc}
+        ref={iframeRef}
+        src={iframeSrc}
+        className="w-full h-full border-0"
+        data-testid="overlay-iframe"
+        style={{ pointerEvents: "none" }}
       />
     </div>
   );

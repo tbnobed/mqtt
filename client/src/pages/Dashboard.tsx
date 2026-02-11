@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Anchor, PanelLeftClose, PanelLeft, History, MonitorPlay } from "lucide-react";
 import { useState } from "react";
@@ -10,14 +10,21 @@ import BoatInfoPanel from "@/components/BoatInfoPanel";
 import StatusBar from "@/components/StatusBar";
 import { useBoats } from "@/hooks/use-boats";
 import { getBoatColor } from "@/lib/types";
-import { useOverlayController } from "@/hooks/use-overlay-sync";
+import { getSocket } from "@/lib/socket";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { boats, selectedBoatId, selectedTrack, connected, mqttConnected, selectBoat, refreshBoats } = useBoats();
   const [panelOpen, setPanelOpen] = useState(true);
-  const { sendState } = useOverlayController();
-  const lastViewRef = useRef<{ center: [number, number]; zoom: number }>({ center: [33.63, -117.89], zoom: 12 });
+
+  const isOverlay = new URLSearchParams(window.location.search).get("overlay") === "1";
+
+  useEffect(() => {
+    if (!isOverlay) {
+      const socket = getSocket();
+      socket.emit("overlay:navigate", { path: "/" });
+    }
+  }, [isOverlay]);
 
   const boatColorMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -37,22 +44,28 @@ export default function Dashboard() {
   const handleSelectBoat = useCallback(
     (id: string | null) => {
       selectBoat(id);
-      sendState({ center: lastViewRef.current.center, zoom: lastViewRef.current.zoom, selectedBoatId: id });
     },
-    [selectBoat, sendState]
-  );
-
-  const handleViewChange = useCallback(
-    (center: [number, number], zoom: number) => {
-      lastViewRef.current = { center, zoom };
-      sendState({ center, zoom, selectedBoatId });
-    },
-    [sendState, selectedBoatId]
+    [selectBoat]
   );
 
   const openOverlay = useCallback(() => {
     window.open("/overlay", "boat-tracker-overlay", "width=1920,height=1080,menubar=no,toolbar=no,location=no,status=no");
   }, []);
+
+  if (isOverlay) {
+    return (
+      <div className="w-full h-screen overflow-hidden" data-testid="dashboard-overlay">
+        <BoatMap
+          boats={boats}
+          selectedBoatId={selectedBoatId}
+          trackPositions={trackPositions}
+          onSelectBoat={handleSelectBoat}
+          boatColorMap={boatColorMap}
+          viewOnly
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background" data-testid="dashboard">
@@ -158,7 +171,6 @@ export default function Dashboard() {
           trackPositions={trackPositions}
           onSelectBoat={handleSelectBoat}
           boatColorMap={boatColorMap}
-          onViewChange={handleViewChange}
         />
       </div>
     </div>
