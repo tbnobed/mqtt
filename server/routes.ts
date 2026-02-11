@@ -76,12 +76,14 @@ export async function registerRoutes(
   app.get("/api/xpression", async (_req, res) => {
     try {
       const allBoats = await storage.getAllBoatsWithPositions();
-      const result = {
-        boats: allBoats
-          .filter((b) => b.latitude !== undefined && b.longitude !== undefined)
-          .map((b) => ({
+      const boatsObj: Record<string, any> = {};
+      allBoats
+        .filter((b) => b.latitude !== undefined && b.longitude !== undefined)
+        .forEach((b) => {
+          const boatName = b.longName || b.shortName || b.id;
+          boatsObj[boatName] = {
             id: b.id,
-            name: b.longName,
+            name: boatName,
             lat: b.latitude,
             lon: b.longitude,
             altitude: b.altitude ?? 0,
@@ -89,9 +91,9 @@ export async function registerRoutes(
             timestamp: b.positionTimestamp
               ? new Date(b.positionTimestamp).toISOString()
               : null,
-          })),
-      };
-      res.json(result);
+          };
+        });
+      res.json({ Boats: boatsObj });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
