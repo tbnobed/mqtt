@@ -199,8 +199,9 @@ export default function Overlay() {
   }, [boats, hiddenBoatIds]);
 
   const trackPositions = useMemo(() => {
+    if (selectedBoatId && hiddenBoatIds.has(selectedBoatId)) return [];
     return selectedTrack?.positions || [];
-  }, [selectedTrack]);
+  }, [selectedTrack, selectedBoatId, hiddenBoatIds]);
 
   const noop = useCallback(() => {}, []);
 
