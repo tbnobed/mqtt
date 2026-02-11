@@ -105,7 +105,7 @@ export class DatabaseStorage implements IStorage {
     const boat = await this.getBoat(boatId);
     if (!boat) return null;
 
-    const positions = await this.getTrackHistory(boatId, 50);
+    const positions = await this.getTrackHistory(boatId, 500);
     const latestPos = positions[positions.length - 1];
 
     return {
