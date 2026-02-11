@@ -62,8 +62,9 @@ export default function Dashboard() {
   }, [boats.map((b) => b.id).join(",")]);
 
   const trackPositions = useMemo(() => {
+    if (selectedBoatId && hiddenBoatIds.has(selectedBoatId)) return [];
     return selectedTrack?.positions || [];
-  }, [selectedTrack]);
+  }, [selectedTrack, selectedBoatId, hiddenBoatIds]);
 
   const selectedBoat = useMemo(() => {
     if (!selectedBoatId) return null;
