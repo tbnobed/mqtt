@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS boats (
   long_name TEXT NOT NULL DEFAULT 'Unknown',
   short_name TEXT NOT NULL DEFAULT '??',
   hw_model TEXT,
+  logo_url TEXT,
   last_seen TIMESTAMP
 );
 
