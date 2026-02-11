@@ -73,6 +73,28 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/history/dates", async (_req, res) => {
+    try {
+      const dates = await storage.getAvailableDates();
+      res.json(dates);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/history", async (req, res) => {
+    try {
+      const date = req.query.date as string;
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return res.status(400).json({ error: "date query param required (YYYY-MM-DD)" });
+      }
+      const tracks = await storage.getPositionsByDate(date);
+      res.json(tracks);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/xpression", async (_req, res) => {
     try {
       const allBoats = await storage.getAllBoatsWithPositions();

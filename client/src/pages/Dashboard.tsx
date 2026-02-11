@@ -1,5 +1,6 @@
 import { useMemo, useCallback } from "react";
-import { Anchor, PanelLeftClose, PanelLeft } from "lucide-react";
+import { useLocation } from "wouter";
+import { Anchor, PanelLeftClose, PanelLeft, History } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,6 +12,7 @@ import { useBoats } from "@/hooks/use-boats";
 import { getBoatColor } from "@/lib/types";
 
 export default function Dashboard() {
+  const [, setLocation] = useLocation();
   const { boats, selectedBoatId, selectedTrack, connected, mqttConnected, selectBoat } = useBoats();
   const [panelOpen, setPanelOpen] = useState(true);
 
@@ -46,14 +48,24 @@ export default function Dashboard() {
                 <Anchor className="w-5 h-5 text-primary" />
                 <h1 className="font-semibold text-base">Boat Tracker</h1>
               </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setPanelOpen(false)}
-                data-testid="button-close-sidebar"
-              >
-                <PanelLeftClose className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setLocation("/history")}
+                  data-testid="button-go-history"
+                >
+                  <History className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setPanelOpen(false)}
+                  data-testid="button-close-sidebar"
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
             <div className="mt-3">
               <StatusBar

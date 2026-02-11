@@ -1,4 +1,4 @@
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and, gte, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { boats, boatPositions, type Boat, type InsertBoat, type BoatPosition, type InsertBoatPosition, type BoatWithPosition, type BoatTrack } from "@shared/schema";
@@ -19,6 +19,8 @@ export interface IStorage {
   getAllBoatsWithPositions(): Promise<BoatWithPosition[]>;
   getBoatTrack(boatId: string): Promise<BoatTrack | null>;
   pruneOldPositions(boatId: string, keepCount?: number): Promise<void>;
+  getPositionsByDate(date: string): Promise<{ boat: Boat; positions: BoatPosition[] }[]>;
+  getAvailableDates(): Promise<string[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -139,6 +141,46 @@ export class DatabaseStorage implements IStorage {
         )
       `);
     }
+  }
+  async getPositionsByDate(date: string): Promise<{ boat: Boat; positions: BoatPosition[] }[]> {
+    const startOfDay = new Date(date + "T00:00:00.000Z");
+    const endOfDay = new Date(date + "T23:59:59.999Z");
+
+    const allBoats = await this.getAllBoats();
+    const results: { boat: Boat; positions: BoatPosition[] }[] = [];
+
+    for (const boat of allBoats) {
+      const positions = await db
+        .select()
+        .from(boatPositions)
+        .where(
+          and(
+            eq(boatPositions.boatId, boat.id),
+            gte(boatPositions.timestamp, startOfDay),
+            lt(boatPositions.timestamp, endOfDay)
+          )
+        )
+        .orderBy(boatPositions.timestamp);
+
+      if (positions.length > 0) {
+        results.push({ boat, positions });
+      }
+    }
+
+    return results;
+  }
+
+  async getAvailableDates(): Promise<string[]> {
+    const rows = await db.execute(sql`
+      SELECT DISTINCT DATE(timestamp) as day
+      FROM boat_positions
+      ORDER BY day DESC
+      LIMIT 90
+    `);
+    return (rows.rows as any[]).map((r) => {
+      const d = new Date(r.day);
+      return d.toISOString().split("T")[0];
+    });
   }
 }
 
