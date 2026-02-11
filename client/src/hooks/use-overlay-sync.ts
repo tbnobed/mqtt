@@ -1,21 +1,11 @@
 import { useEffect, useRef, useCallback } from "react";
+import { getSocket } from "@/lib/socket";
 import type { OverlayState } from "@/lib/types";
 
-const CHANNEL_NAME = "boat-tracker-overlay";
-
 export function useOverlayController() {
-  const channelRef = useRef<BroadcastChannel | null>(null);
-
-  useEffect(() => {
-    channelRef.current = new BroadcastChannel(CHANNEL_NAME);
-    return () => {
-      channelRef.current?.close();
-      channelRef.current = null;
-    };
-  }, []);
-
   const sendState = useCallback((state: OverlayState) => {
-    channelRef.current?.postMessage(state);
+    const socket = getSocket();
+    socket.emit("overlay:state", state);
   }, []);
 
   return { sendState };
@@ -26,10 +16,16 @@ export function useOverlayReceiver(onState: (state: OverlayState) => void) {
   callbackRef.current = onState;
 
   useEffect(() => {
-    const channel = new BroadcastChannel(CHANNEL_NAME);
-    channel.onmessage = (event: MessageEvent<OverlayState>) => {
-      callbackRef.current(event.data);
+    const socket = getSocket();
+    const handler = (state: OverlayState) => {
+      callbackRef.current(state);
     };
-    return () => channel.close();
+    socket.on("overlay:state", handler);
+
+    socket.emit("overlay:request");
+
+    return () => {
+      socket.off("overlay:state", handler);
+    };
   }, []);
 }

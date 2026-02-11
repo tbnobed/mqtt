@@ -47,12 +47,25 @@ export async function registerRoutes(
     transports: ["websocket", "polling"],
   });
 
+  let lastOverlayState: { center: [number, number]; zoom: number; selectedBoatId: string | null } | null = null;
+
   io.on("connection", async (socket) => {
     try {
       const allBoats = await storage.getAllBoatsWithPositions();
       socket.emit("boats:update", allBoats);
     } catch {}
     socket.emit("mqtt:status", { connected: getMqttStatus() });
+
+    socket.on("overlay:state", (state: { center: [number, number]; zoom: number; selectedBoatId: string | null }) => {
+      lastOverlayState = state;
+      socket.broadcast.emit("overlay:state", state);
+    });
+
+    socket.on("overlay:request", () => {
+      if (lastOverlayState) {
+        socket.emit("overlay:state", lastOverlayState);
+      }
+    });
   });
 
   setupMQTT(io);

@@ -52,10 +52,7 @@ export default function Dashboard() {
 
   const openOverlay = useCallback(() => {
     window.open("/overlay", "boat-tracker-overlay", "width=1920,height=1080,menubar=no,toolbar=no,location=no,status=no");
-    setTimeout(() => {
-      sendState({ center: lastViewRef.current.center, zoom: lastViewRef.current.zoom, selectedBoatId });
-    }, 1500);
-  }, [sendState, selectedBoatId]);
+  }, []);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background" data-testid="dashboard">

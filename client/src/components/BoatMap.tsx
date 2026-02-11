@@ -131,6 +131,8 @@ export default function BoatMap({ boats, selectedBoatId, trackPositions, onSelec
   const trackLineRef = useRef<L.Polyline | null>(null);
   const trackDotsRef = useRef<L.CircleMarker[]>([]);
   const isExternalMoveRef = useRef(false);
+  const onViewChangeRef = useRef(onViewChange);
+  onViewChangeRef.current = onViewChange;
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -157,11 +159,11 @@ export default function BoatMap({ boats, selectedBoatId, trackPositions, onSelec
       maxZoom: 19,
     }).addTo(map);
 
-    if (onViewChange && !viewOnly) {
+    if (!viewOnly) {
       const emitChange = () => {
         if (isExternalMoveRef.current) return;
         const c = map.getCenter();
-        onViewChange([c.lat, c.lng], map.getZoom());
+        onViewChangeRef.current?.([c.lat, c.lng], map.getZoom());
       };
       map.on("moveend", emitChange);
       map.on("zoomend", emitChange);
