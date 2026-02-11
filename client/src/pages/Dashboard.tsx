@@ -13,7 +13,7 @@ import { getBoatColor } from "@/lib/types";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
-  const { boats, selectedBoatId, selectedTrack, connected, mqttConnected, selectBoat } = useBoats();
+  const { boats, selectedBoatId, selectedTrack, connected, mqttConnected, selectBoat, refreshBoats } = useBoats();
   const [panelOpen, setPanelOpen] = useState(true);
 
   const boatColorMap = useMemo(() => {
@@ -94,6 +94,7 @@ export default function Dashboard() {
                 trackPositions={trackPositions}
                 color={boatColorMap.get(selectedBoat.id) || "#3b82f6"}
                 onClose={() => handleSelectBoat(null)}
+                onLogoUpdated={refreshBoats}
               />
             </div>
           )}

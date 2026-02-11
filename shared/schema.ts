@@ -8,6 +8,7 @@ export const boats = pgTable("boats", {
   longName: text("long_name").notNull().default("Unknown"),
   shortName: text("short_name").notNull().default("??"),
   hwModel: text("hw_model"),
+  logoUrl: text("logo_url"),
   lastSeen: timestamp("last_seen"),
 });
 

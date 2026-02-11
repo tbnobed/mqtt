@@ -1,4 +1,5 @@
-import { Navigation, Satellite, Mountain, Clock, Waves, ArrowUp } from "lucide-react";
+import { useRef, useState } from "react";
+import { Navigation, Satellite, Mountain, Clock, Waves, ArrowUp, Upload, X, ImageIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,20 +11,64 @@ interface BoatInfoPanelProps {
   trackPositions: BoatPositionData[];
   color: string;
   onClose: () => void;
+  onLogoUpdated?: () => void;
 }
 
-export default function BoatInfoPanel({ boat, trackPositions, color, onClose }: BoatInfoPanelProps) {
+export default function BoatInfoPanel({ boat, trackPositions, color, onClose, onLogoUpdated }: BoatInfoPanelProps) {
   const offline = isOffline(boat.positionTimestamp || boat.lastSeen);
   const lastTs = boat.positionTimestamp || boat.lastSeen;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("logo", file);
+      const res = await fetch(`/api/boats/${boat.id}/logo`, {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        onLogoUpdated?.();
+      }
+    } catch {}
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleRemoveLogo = async () => {
+    setUploading(true);
+    try {
+      const res = await fetch(`/api/boats/${boat.id}/logo`, { method: "DELETE" });
+      if (res.ok) {
+        onLogoUpdated?.();
+      }
+    } catch {}
+    setUploading(false);
+  };
 
   return (
     <Card className="p-4 space-y-4" data-testid="boat-info-panel">
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2 min-w-0">
-          <div
-            className="w-4 h-4 rounded-full shrink-0"
-            style={{ backgroundColor: color }}
-          />
+          {boat.logoUrl ? (
+            <img
+              src={boat.logoUrl}
+              alt={boat.shortName}
+              className="w-8 h-8 rounded-full shrink-0 object-cover"
+              style={{ border: `2px solid ${color}` }}
+              data-testid="img-boat-logo"
+            />
+          ) : (
+            <div
+              className="w-4 h-4 rounded-full shrink-0"
+              style={{ backgroundColor: color }}
+            />
+          )}
           <div className="min-w-0">
             <h3 className="font-semibold text-sm truncate" data-testid="text-boat-name">{boat.longName}</h3>
             <p className="text-xs text-muted-foreground">{boat.shortName} &middot; {boat.id}</p>
@@ -41,6 +86,43 @@ export default function BoatInfoPanel({ boat, trackPositions, color, onClose }: 
             <ArrowUp className="w-4 h-4 rotate-90" />
           </Button>
         </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleLogoUpload}
+          data-testid="input-logo-upload"
+        />
+        <Button
+          variant="outline"
+          disabled={uploading}
+          onClick={() => fileInputRef.current?.click()}
+          data-testid="button-upload-logo"
+        >
+          {uploading ? (
+            <span className="text-xs">Uploading...</span>
+          ) : (
+            <>
+              <ImageIcon className="w-4 h-4 mr-1" />
+              <span className="text-xs">{boat.logoUrl ? "Change Logo" : "Set Team Logo"}</span>
+            </>
+          )}
+        </Button>
+        {boat.logoUrl && (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={handleRemoveLogo}
+            disabled={uploading}
+            data-testid="button-remove-logo"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">

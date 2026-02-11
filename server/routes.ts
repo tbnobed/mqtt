@@ -5,6 +5,9 @@ import { storage } from "./storage";
 import { setupMQTT, getMqttStatus } from "./mqtt";
 import { db } from "./storage";
 import { sql } from "drizzle-orm";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -16,9 +19,11 @@ export async function registerRoutes(
       long_name TEXT NOT NULL DEFAULT 'Unknown',
       short_name TEXT NOT NULL DEFAULT '??',
       hw_model TEXT,
+      logo_url TEXT,
       last_seen TIMESTAMP
     )
   `);
+  await db.execute(sql`ALTER TABLE boats ADD COLUMN IF NOT EXISTS logo_url TEXT`);
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS boat_positions (
@@ -51,6 +56,64 @@ export async function registerRoutes(
   });
 
   setupMQTT(io);
+
+  const uploadsDir = path.resolve("uploads", "logos");
+  fs.mkdirSync(uploadsDir, { recursive: true });
+
+  const logoUpload = multer({
+    storage: multer.diskStorage({
+      destination: (_req, _file, cb) => cb(null, uploadsDir),
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname) || ".png";
+        const name = `${Date.now()}${ext}`;
+        cb(null, name);
+      },
+    }),
+    limits: { fileSize: 2 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      const allowed = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, allowed.includes(ext));
+    },
+  });
+
+  app.use("/uploads", (await import("express")).default.static(path.resolve("uploads")));
+
+  app.post("/api/boats/:id/logo", logoUpload.single("logo"), async (req, res) => {
+    try {
+      const boatId = req.params.id as string;
+      const boat = await storage.getBoat(boatId);
+      if (!boat) return res.status(404).json({ error: "Boat not found" });
+      if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+      const logoUrl = `/uploads/logos/${req.file.filename}`;
+      await storage.updateBoatLogo(boatId, logoUrl);
+
+      const updated = await storage.getBoat(boatId);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/boats/:id/logo", async (req, res) => {
+    try {
+      const boatId = req.params.id as string;
+      const boat = await storage.getBoat(boatId);
+      if (!boat) return res.status(404).json({ error: "Boat not found" });
+
+      if (boat.logoUrl) {
+        const filePath = path.resolve("." + boat.logoUrl);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+
+      await storage.updateBoatLogo(boatId, null);
+      const updated = await storage.getBoat(boatId);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   app.get("/api/boats", async (_req, res) => {
     try {

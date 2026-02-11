@@ -3,6 +3,7 @@ export interface BoatData {
   longName: string;
   shortName: string;
   hwModel: string | null;
+  logoUrl: string | null;
   lastSeen: string | null;
   latitude?: number;
   longitude?: number;

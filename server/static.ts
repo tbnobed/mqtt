@@ -13,7 +13,7 @@ export function serveStatic(app: Express) {
   app.use(express.static(distPath));
 
   app.use("/{*path}", (req, res, next) => {
-    if (req.path.startsWith("/socket.io")) {
+    if (req.path.startsWith("/socket.io") || req.path.startsWith("/uploads")) {
       return next();
     }
     res.sendFile(path.resolve(distPath, "index.html"));

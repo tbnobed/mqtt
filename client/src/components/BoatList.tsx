@@ -39,10 +39,20 @@ export default function BoatList({ boats, selectedBoatId, onSelectBoat, boatColo
             `}
           >
             <div className="flex items-center gap-2">
-              <div
-                className="w-3 h-3 rounded-full shrink-0"
-                style={{ backgroundColor: color }}
-              />
+              {boat.logoUrl ? (
+                <img
+                  src={boat.logoUrl}
+                  alt={boat.shortName}
+                  className="w-6 h-6 rounded-full shrink-0 object-cover"
+                  style={{ border: `2px solid ${color}` }}
+                  data-testid={`img-boat-logo-${boat.id}`}
+                />
+              ) : (
+                <div
+                  className="w-3 h-3 rounded-full shrink-0"
+                  style={{ backgroundColor: color }}
+                />
+              )}
               <span className="text-sm font-medium truncate flex-1" data-testid={`text-boat-name-${boat.id}`}>
                 {boat.longName}
               </span>

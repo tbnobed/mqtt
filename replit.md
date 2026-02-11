@@ -25,11 +25,13 @@ Real-time boat GPS tracking system that receives position data from fishing boat
 - `client/src/lib/types.ts` - TypeScript types and utility functions
 
 ## API Endpoints
-- `GET /api/boats` - All boats with latest positions
+- `GET /api/boats` - All boats with latest positions (includes logoUrl field)
 - `GET /api/boats/:id` - Single boat with 50-position track history
 - `GET /api/xpression` - Simplified JSON for Xpression broadcast graphics (Boats > BoatName > data)
 - `GET /api/history/dates` - Available dates with position data (array of YYYY-MM-DD strings)
 - `GET /api/history?date=YYYY-MM-DD` - All boat tracks for a specific day
+- `POST /api/boats/:id/logo` - Upload team logo (multipart form, field: "logo", max 2MB, png/jpg/gif/webp)
+- `DELETE /api/boats/:id/logo` - Remove team logo
 
 ## MQTT Message Format
 - Position messages: `{ type: "position", sender: "!id", payload: { latitude_i, longitude_i, altitude, sats_in_view, time } }`

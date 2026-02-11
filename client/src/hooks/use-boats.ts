@@ -30,6 +30,7 @@ export function useBoats() {
               longName: data.boatId,
               shortName: data.boatId.slice(-3),
               hwModel: null,
+              logoUrl: null,
               lastSeen: data.position.timestamp,
               latitude: data.position.latitude,
               longitude: data.position.longitude,
@@ -113,5 +114,13 @@ export function useBoats() {
     }
   }, []);
 
-  return { boats, selectedBoatId, selectedTrack, connected, mqttConnected, selectBoat };
+  const refreshBoats = useCallback(async () => {
+    try {
+      const r = await fetch("/api/boats");
+      const data = await r.json();
+      setBoats(data);
+    } catch {}
+  }, []);
+
+  return { boats, selectedBoatId, selectedTrack, connected, mqttConnected, selectBoat, refreshBoats };
 }

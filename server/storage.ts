@@ -19,6 +19,7 @@ export interface IStorage {
   getAllBoatsWithPositions(): Promise<BoatWithPosition[]>;
   getBoatTrack(boatId: string): Promise<BoatTrack | null>;
   pruneOldPositions(boatId: string, keepCount?: number): Promise<void>;
+  updateBoatLogo(boatId: string, logoUrl: string | null): Promise<void>;
   getPositionsByDate(date: string): Promise<{ boat: Boat; positions: BoatPosition[] }[]>;
   getAvailableDates(): Promise<string[]>;
 }
@@ -142,6 +143,13 @@ export class DatabaseStorage implements IStorage {
       `);
     }
   }
+  async updateBoatLogo(boatId: string, logoUrl: string | null): Promise<void> {
+    await db
+      .update(boats)
+      .set({ logoUrl })
+      .where(eq(boats.id, boatId));
+  }
+
   async getPositionsByDate(date: string): Promise<{ boat: Boat; positions: BoatPosition[] }[]> {
     const startOfDay = new Date(date + "T00:00:00.000Z");
     const endOfDay = new Date(date + "T23:59:59.999Z");
