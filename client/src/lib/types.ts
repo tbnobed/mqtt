@@ -89,3 +89,9 @@ export function formatSpeed(knots: number | undefined | null): string {
   if (knots === undefined || knots === null) return "0.0 kts";
   return `${knots.toFixed(1)} kts`;
 }
+
+export interface OverlayState {
+  center: [number, number];
+  zoom: number;
+  selectedBoatId: string | null;
+}

@@ -10,6 +10,10 @@ interface BoatMapProps {
   trackPositions: BoatPositionData[];
   onSelectBoat: (id: string | null) => void;
   boatColorMap: Map<string, string>;
+  viewOnly?: boolean;
+  controlledCenter?: [number, number];
+  controlledZoom?: number;
+  onViewChange?: (center: [number, number], zoom: number) => void;
 }
 
 function createBoatIcon(color: string, heading: number, offline: boolean, label: string, offsetX: number, offsetY: number, selected: boolean, logoUrl?: string | null): L.DivIcon {
@@ -120,12 +124,13 @@ function computeOffsets(boats: BoatData[]): Map<string, [number, number]> {
   return offsets;
 }
 
-export default function BoatMap({ boats, selectedBoatId, trackPositions, onSelectBoat, boatColorMap }: BoatMapProps) {
+export default function BoatMap({ boats, selectedBoatId, trackPositions, onSelectBoat, boatColorMap, viewOnly, controlledCenter, controlledZoom, onViewChange }: BoatMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const trackLineRef = useRef<L.Polyline | null>(null);
   const trackDotsRef = useRef<L.CircleMarker[]>([]);
+  const isExternalMoveRef = useRef(false);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -133,15 +138,34 @@ export default function BoatMap({ boats, selectedBoatId, trackPositions, onSelec
     const map = L.map(mapContainerRef.current, {
       center: [33.63, -117.89],
       zoom: 12,
-      zoomControl: false,
+      zoomControl: !viewOnly,
+      dragging: !viewOnly,
+      scrollWheelZoom: !viewOnly,
+      doubleClickZoom: !viewOnly,
+      touchZoom: !viewOnly,
+      boxZoom: !viewOnly,
+      keyboard: !viewOnly,
+      attributionControl: !viewOnly,
     });
 
-    L.control.zoom({ position: "topright" }).addTo(map);
+    if (!viewOnly) {
+      L.control.zoom({ position: "topright" }).addTo(map);
+    }
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
       maxZoom: 19,
     }).addTo(map);
+
+    if (onViewChange && !viewOnly) {
+      const emitChange = () => {
+        if (isExternalMoveRef.current) return;
+        const c = map.getCenter();
+        onViewChange([c.lat, c.lng], map.getZoom());
+      };
+      map.on("moveend", emitChange);
+      map.on("zoomend", emitChange);
+    }
 
     mapRef.current = map;
 
@@ -228,9 +252,16 @@ export default function BoatMap({ boats, selectedBoatId, trackPositions, onSelec
     }
   }, [trackPositions, selectedBoatId, boatColorMap]);
 
+  useEffect(() => {
+    if (!mapRef.current || !viewOnly || !controlledCenter || controlledZoom === undefined) return;
+    isExternalMoveRef.current = true;
+    mapRef.current.setView(controlledCenter, controlledZoom, { animate: true, duration: 0.3 });
+    setTimeout(() => { isExternalMoveRef.current = false; }, 400);
+  }, [controlledCenter?.[0], controlledCenter?.[1], controlledZoom, viewOnly]);
+
   const prevSelectedRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!mapRef.current || !selectedBoatId) {
+    if (!mapRef.current || !selectedBoatId || viewOnly) {
       prevSelectedRef.current = selectedBoatId;
       return;
     }
@@ -240,7 +271,7 @@ export default function BoatMap({ boats, selectedBoatId, trackPositions, onSelec
     if (boat?.latitude !== undefined && boat?.longitude !== undefined) {
       mapRef.current.setView([boat.latitude, boat.longitude], 14, { animate: true });
     }
-  }, [selectedBoatId, boats]);
+  }, [selectedBoatId, boats, viewOnly]);
 
   return (
     <div

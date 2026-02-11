@@ -39,6 +39,7 @@ Real-time boat GPS tracking system that receives position data from fishing boat
 - Coordinates are integers divided by 10,000,000 to get decimal degrees
 
 ## Recent Changes
+- 2026-02-11: Added broadcast overlay (/overlay) - full-screen map synced from Dashboard via BroadcastChannel for broadcast output
 - 2026-02-11: Added History page (/history) for viewing boat tracks by date with date picker and colored track lines
 - 2026-02-11: Updated /api/xpression to use Boats > BoatName > data structure for Xpression compatibility
 - 2026-02-09: Added msh/2/# topic subscription (Boat 2 publishes to msh/2/ not msh/US/)
