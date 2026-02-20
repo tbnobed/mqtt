@@ -4,7 +4,11 @@ CREATE TABLE IF NOT EXISTS boats (
   short_name TEXT NOT NULL DEFAULT '??',
   hw_model TEXT,
   logo_url TEXT,
-  last_seen TIMESTAMP
+  last_seen TIMESTAMP,
+  pitch DOUBLE PRECISION,
+  roll DOUBLE PRECISION,
+  battery_level INTEGER,
+  battery_voltage DOUBLE PRECISION
 );
 
 CREATE TABLE IF NOT EXISTS boat_positions (
