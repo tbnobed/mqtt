@@ -36,6 +36,7 @@ services:
       MQTT_PASSWORD: ${MQTT_PASSWORD:-tbn123}
       MQTT_TOPIC: ${MQTT_TOPIC:-msh/US/#,msh/2/#,boats/#}
       SESSION_SECRET: ${SESSION_SECRET:-change-this-to-a-random-string}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
 
 volumes:
   pgdata:

@@ -98,16 +98,19 @@ export async function registerRoutes(
   const pgPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
   const PgStore = connectPgSimple(session);
 
+  app.set("trust proxy", 1);
+
   app.use(
     session({
       store: new PgStore({ pool: pgPool, createTableIfMissing: true }),
       secret: process.env.SESSION_SECRET || "boat-tracker-secret",
       resave: false,
       saveUninitialized: false,
+      proxy: true,
       cookie: {
         httpOnly: true,
         sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env.COOKIE_SECURE === "true",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       },
     })
