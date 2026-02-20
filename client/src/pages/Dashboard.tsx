@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Anchor, PanelLeftClose, PanelLeft, History, MonitorPlay } from "lucide-react";
+import { Anchor, PanelLeftClose, PanelLeft, History, MonitorPlay, LogOut, Users } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,10 +11,12 @@ import StatusBar from "@/components/StatusBar";
 import { useBoats } from "@/hooks/use-boats";
 import { getBoatColor } from "@/lib/types";
 import { useOverlayController } from "@/hooks/use-overlay-sync";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { boats, selectedBoatId, selectedTrack, connected, mqttConnected, selectBoat, refreshBoats } = useBoats();
+  const { user, isAdmin, logout } = useAuth();
   const [panelOpen, setPanelOpen] = useState(true);
   const [hiddenBoatIds, setHiddenBoatIds] = useState<Set<string>>(new Set());
   const { sendState } = useOverlayController();
@@ -133,6 +135,35 @@ export default function Dashboard() {
                   <PanelLeftClose className="w-4 h-4" />
                 </Button>
               </div>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-xs text-muted-foreground truncate" data-testid="text-current-user">
+                  {user?.username} ({user?.role})
+                </span>
+                <div className="flex items-center gap-1">
+                  {isAdmin && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      onClick={() => setLocation("/admin")}
+                      title="Manage Users"
+                      data-testid="button-go-admin"
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => logout()}
+                    title="Sign Out"
+                    data-testid="button-logout"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
             </div>
             <div className="mt-3">
               <StatusBar
@@ -152,13 +183,13 @@ export default function Dashboard() {
                 boatColorMap={boatColorMap}
                 hiddenBoatIds={hiddenBoatIds}
                 onToggleVisibility={toggleBoatVisibility}
-                onDeleteBoat={async (id) => {
+                onDeleteBoat={isAdmin ? async (id) => {
                   try {
-                    await fetch(`/api/boats/${id}`, { method: "DELETE" });
+                    await fetch(`/api/boats/${id}`, { method: "DELETE", credentials: "include" });
                     if (selectedBoatId === id) selectBoat(null);
                     refreshBoats();
                   } catch {}
-                }}
+                } : undefined}
               />
             </div>
           </ScrollArea>

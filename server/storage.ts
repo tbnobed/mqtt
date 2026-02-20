@@ -1,7 +1,8 @@
 import { eq, desc, sql, and, gte, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-import { boats, boatPositions, type Boat, type InsertBoat, type BoatPosition, type InsertBoatPosition, type BoatWithPosition, type BoatTrack } from "@shared/schema";
+import bcrypt from "bcrypt";
+import { boats, boatPositions, users, type Boat, type InsertBoat, type BoatPosition, type InsertBoatPosition, type BoatWithPosition, type BoatTrack, type User, type SafeUser } from "@shared/schema";
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
@@ -23,6 +24,14 @@ export interface IStorage {
   deleteBoat(id: string): Promise<void>;
   getPositionsByDate(date: string): Promise<{ boat: Boat; positions: BoatPosition[] }[]>;
   getAvailableDates(): Promise<string[]>;
+  createUser(username: string, password: string, role: "admin" | "user"): Promise<SafeUser>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserById(id: number): Promise<SafeUser | undefined>;
+  getAllUsers(): Promise<SafeUser[]>;
+  deleteUser(id: number): Promise<void>;
+  updateUserRole(id: number, role: "admin" | "user"): Promise<SafeUser | undefined>;
+  verifyPassword(password: string, hash: string): Promise<boolean>;
+  getUserCount(): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -201,6 +210,56 @@ export class DatabaseStorage implements IStorage {
       const d = new Date(r.day);
       return d.toISOString().split("T")[0];
     });
+  }
+  async createUser(username: string, password: string, role: "admin" | "user"): Promise<SafeUser> {
+    const passwordHash = await bcrypt.hash(password, 10);
+    const [result] = await db
+      .insert(users)
+      .values({ username, passwordHash, role })
+      .returning();
+    const { passwordHash: _, ...safe } = result;
+    return safe;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [result] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return result;
+  }
+
+  async getUserById(id: number): Promise<SafeUser | undefined> {
+    const [result] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    if (!result) return undefined;
+    const { passwordHash: _, ...safe } = result;
+    return safe;
+  }
+
+  async getAllUsers(): Promise<SafeUser[]> {
+    const results = await db.select().from(users);
+    return results.map(({ passwordHash: _, ...safe }) => safe);
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  async updateUserRole(id: number, role: "admin" | "user"): Promise<SafeUser | undefined> {
+    const [result] = await db
+      .update(users)
+      .set({ role })
+      .where(eq(users.id, id))
+      .returning();
+    if (!result) return undefined;
+    const { passwordHash: _, ...safe } = result;
+    return safe;
+  }
+
+  async verifyPassword(password: string, hash: string): Promise<boolean> {
+    return bcrypt.compare(password, hash);
+  }
+
+  async getUserCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(users);
+    return Number(result[0]?.count || 0);
   }
 }
 

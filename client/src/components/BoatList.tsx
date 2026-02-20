@@ -113,48 +113,50 @@ export default function BoatList({ boats, selectedBoatId, onSelectBoat, boatColo
               >
                 {isHidden ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
               </Button>
-              {isConfirmingDelete ? (
-                <div className="flex items-center gap-1">
+              {onDeleteBoat ? (
+                isConfirmingDelete ? (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-7 px-2 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteBoat(boat.id);
+                        setConfirmDeleteId(null);
+                      }}
+                      data-testid={`button-confirm-delete-${boat.id}`}
+                    >
+                      Delete
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDeleteId(null);
+                      }}
+                      data-testid={`button-cancel-delete-${boat.id}`}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
                   <Button
-                    size="sm"
-                    variant="destructive"
-                    className="h-7 px-2 text-xs"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteBoat?.(boat.id);
-                      setConfirmDeleteId(null);
-                    }}
-                    data-testid={`button-confirm-delete-${boat.id}`}
-                  >
-                    Delete
-                  </Button>
-                  <Button
-                    size="sm"
+                    size="icon"
                     variant="ghost"
-                    className="h-7 px-2 text-xs"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setConfirmDeleteId(null);
+                      setConfirmDeleteId(boat.id);
                     }}
-                    data-testid={`button-cancel-delete-${boat.id}`}
+                    data-testid={`button-delete-${boat.id}`}
+                    title="Delete boat"
                   >
-                    Cancel
+                    <Trash2 className="w-4 h-4 text-muted-foreground" />
                   </Button>
-                </div>
-              ) : (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setConfirmDeleteId(boat.id);
-                  }}
-                  data-testid={`button-delete-${boat.id}`}
-                  title="Delete boat"
-                >
-                  <Trash2 className="w-4 h-4 text-muted-foreground" />
-                </Button>
-              )}
+                )
+              ) : null}
             </div>
           </div>
         );
