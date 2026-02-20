@@ -1,0 +1,48 @@
+app-1  | Internal Server Error: Error: ENOENT: no such file or directory, open '/app/dist/table.sql'
+app-1  |     at async open (node:internal/fs/promises:634:25)
+app-1  |     at async Object.readFile (node:internal/fs/promises:1236:14)
+app-1  |     at async n._rawEnsureSessionStoreTable (/app/dist/index.cjs:88:7199)
+app-1  |     at async n._asyncQuery (/app/dist/index.cjs:88:8284) {
+app-1  |   errno: -2,
+app-1  |   code: 'ENOENT',
+app-1  |   syscall: 'open',
+app-1  |   path: '/app/dist/table.sql'
+app-1  | }
+app-1  | 9:17:44 PM [express] GET /api/auth/me 401 in 3ms :: {"error":"Not authenticated"}
+app-1  | Error: ENOENT: no such file or directory, open '/app/dist/table.sql'
+app-1  |     at async open (node:internal/fs/promises:634:25)
+app-1  |     at async Object.readFile (node:internal/fs/promises:1236:14)
+app-1  |     at async n._rawEnsureSessionStoreTable (/app/dist/index.cjs:88:7199)
+app-1  |     at async n._asyncQuery (/app/dist/index.cjs:88:8284)
+app-1  | 9:17:45 PM [mqtt] Boat position: 1 → 33.622180, -117.876400 (0.3 kts)
+app-1  | 9:17:45 PM [mqtt] Boat telemetry: 1 → Obed Test1 pitch=-2.847797 roll=168.7961 bat=N/AV
+app-1  | 9:17:46 PM [mqtt] Boat position: 1 → 33.622180, -117.876400 (0.1 kts)
+app-1  | 9:17:46 PM [mqtt] Boat telemetry: 1 → Obed Test1 pitch=-2.878223 roll=168.761 bat=N/AV
+app-1  | 9:17:47 PM [express] GET /api/xpression 200 in 12ms :: {"Boats":{"SFC War Room":{"id":"!849ac984","name":"SFC War Room","lat":32.986159,"lon":-97.2447105,"altitude":296,"satellites":4,"speed":3.328884196665297,"heading":290.1190434287491,"pitch":null,"roll":null,"batteryLevel":null,"batteryVoltage":null,"timestamp":"2026-02-20T21:08:54.000Z"},"Obed Test1":{"id":"1","name":"Obed Test1","lat":33.62218,"lon":-117.8764,"altitude":31,"satellites":22,"speed":0.08,"heading":0,"pitch":-2.878223,"roll":168.761,"batteryLevel":7,"batteryVoltage":null,"timestamp":"2026-02-20T21:17:46.567Z"}}}
+app-1  | 9:17:47 PM [mqtt] Boat position: 1 → 33.622180, -117.876400 (0.0 kts)
+app-1  | 9:17:47 PM [mqtt] Boat telemetry: 1 → Obed Test1 pitch=-2.871129 roll=168.7631 bat=N/AV
+app-1  | 9:17:48 PM [express] POST /api/auth/login 200 in 188ms :: {"id":1,"username":"admin","role":"admin","createdAt":"2026-02-20T21:16:04.602Z"}
+app-1  | Internal Server Error: Error: ENOENT: no such file or directory, open '/app/dist/table.sql'
+app-1  |     at async open (node:internal/fs/promises:634:25)
+app-1  |     at async Object.readFile (node:internal/fs/promises:1236:14)
+app-1  |     at async n._rawEnsureSessionStoreTable (/app/dist/index.cjs:88:7199)
+app-1  |     at async n._asyncQuery (/app/dist/index.cjs:88:8284) {
+app-1  |   errno: -2,
+app-1  |   code: 'ENOENT',
+app-1  |   syscall: 'open',
+app-1  |   path: '/app/dist/table.sql'
+app-1  | }
+app-1  | Error: ENOENT: no such file or directory, open '/app/dist/table.sql'
+app-1  |     at async open (node:internal/fs/promises:634:25)
+app-1  |     at async Object.readFile (node:internal/fs/promises:1236:14)
+app-1  |     at async n._rawEnsureSessionStoreTable (/app/dist/index.cjs:88:7199)
+app-1  |     at async n._asyncQuery (/app/dist/index.cjs:88:8284)
+app-1  | 9:17:48 PM [express] GET /api/auth/me 401 in 3ms :: {"error":"Not authenticated"}
+app-1  | 9:17:48 PM [mqtt] Boat position: 1 → 33.622180, -117.876400 (0.0 kts)
+app-1  | 9:17:48 PM [mqtt] Boat telemetry: 1 → Obed Test1 pitch=-2.8746 roll=168.7575 bat=N/AV
+app-1  | 9:17:52 PM [mqtt] Boat position: 1 → 33.622180, -117.876400 (0.3 kts)
+app-1  | 9:17:52 PM [mqtt] Boat telemetry: 1 → Obed Test1 pitch=-2.880665 roll=168.7769 bat=N/AV
+app-1  | 9:17:52 PM [mqtt] Boat position: 1 → 33.622180, -117.876400 (0.1 kts)
+app-1  | 9:17:52 PM [mqtt] Boat telemetry: 1 → Obed Test1 pitch=-2.848198 roll=168.7776 bat=N/AV
+app-1  | 9:17:52 PM [mqtt] Boat position: 1 → 33.622180, -117.876400 (0.1 kts)
+app-1  | 9:17:52 PM [mqtt] Boat telemetry: 1 → Obed Test1 pitch=-2.863855 roll=168.7615 bat=N/AV

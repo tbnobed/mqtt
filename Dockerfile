@@ -16,6 +16,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/package-lock.json* ./
 RUN npm ci --omit=dev --ignore-scripts 2>/dev/null || npm install --omit=dev --ignore-scripts
+RUN cp node_modules/connect-pg-simple/table.sql dist/table.sql 2>/dev/null || true
 
 ENV NODE_ENV=production
 ENV PORT=5000
