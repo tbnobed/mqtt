@@ -101,7 +101,7 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background" data-testid="dashboard">
       {panelOpen && (
-        <div className="w-80 shrink-0 border-r border-border flex flex-col bg-card h-full">
+        <div className="w-96 shrink-0 border-r border-border flex flex-col bg-card h-full">
           <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
