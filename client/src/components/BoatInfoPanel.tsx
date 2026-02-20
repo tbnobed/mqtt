@@ -178,11 +178,11 @@ export default function BoatInfoPanel({ boat, trackPositions, color, onClose, on
             testId="text-roll"
           />
         )}
-        {boat.batteryLevel != null && (
+        {(boat.batteryLevel != null || boat.batteryVoltage != null) && (
           <InfoItem
             icon={<Battery className="w-3.5 h-3.5" />}
             label="Battery"
-            value={`${boat.batteryLevel}%${boat.batteryVoltage != null ? ` (${boat.batteryVoltage.toFixed(1)}V)` : ""}`}
+            value={boat.batteryLevel != null ? `${boat.batteryLevel}%${boat.batteryVoltage != null ? ` (${boat.batteryVoltage.toFixed(1)}V)` : ""}` : `${boat.batteryVoltage!.toFixed(1)}V`}
             testId="text-battery"
           />
         )}
