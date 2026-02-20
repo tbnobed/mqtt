@@ -126,6 +126,26 @@ export default function Dashboard() {
                 >
                   <History className="w-4 h-4" />
                 </Button>
+                {isAdmin && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setLocation("/admin")}
+                    title="Manage Users"
+                    data-testid="button-go-admin"
+                  >
+                    <Users className="w-4 h-4" />
+                  </Button>
+                )}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => logout()}
+                  title="Sign Out"
+                  data-testid="button-logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
                 <Button
                   size="icon"
                   variant="ghost"
@@ -134,35 +154,6 @@ export default function Dashboard() {
                 >
                   <PanelLeftClose className="w-4 h-4" />
                 </Button>
-              </div>
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-xs text-muted-foreground truncate" data-testid="text-current-user">
-                  {user?.username} ({user?.role})
-                </span>
-                <div className="flex items-center gap-1">
-                  {isAdmin && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6"
-                      onClick={() => setLocation("/admin")}
-                      title="Manage Users"
-                      data-testid="button-go-admin"
-                    >
-                      <Users className="w-3.5 h-3.5" />
-                    </Button>
-                  )}
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
-                    onClick={() => logout()}
-                    title="Sign Out"
-                    data-testid="button-logout"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
               </div>
             </div>
             <div className="mt-3">
