@@ -12,6 +12,10 @@ export interface BoatData {
   speed?: number;
   heading?: number;
   positionTimestamp?: string;
+  pitch?: number | null;
+  roll?: number | null;
+  batteryLevel?: number | null;
+  batteryVoltage?: number | null;
 }
 
 export interface BoatPositionData {

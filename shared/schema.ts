@@ -10,6 +10,10 @@ export const boats = pgTable("boats", {
   hwModel: text("hw_model"),
   logoUrl: text("logo_url"),
   lastSeen: timestamp("last_seen"),
+  pitch: doublePrecision("pitch"),
+  roll: doublePrecision("roll"),
+  batteryLevel: integer("battery_level"),
+  batteryVoltage: doublePrecision("battery_voltage"),
 });
 
 export const boatPositions = pgTable("boat_positions", {

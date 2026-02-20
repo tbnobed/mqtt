@@ -26,17 +26,23 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async upsertBoat(boat: InsertBoat): Promise<Boat> {
+    const updateSet: Record<string, any> = {
+      longName: boat.longName,
+      shortName: boat.shortName,
+      hwModel: boat.hwModel,
+      lastSeen: new Date(),
+    };
+    if (boat.pitch !== undefined) updateSet.pitch = boat.pitch;
+    if (boat.roll !== undefined) updateSet.roll = boat.roll;
+    if (boat.batteryLevel !== undefined) updateSet.batteryLevel = boat.batteryLevel;
+    if (boat.batteryVoltage !== undefined) updateSet.batteryVoltage = boat.batteryVoltage;
+
     const [result] = await db
       .insert(boats)
       .values({ ...boat, lastSeen: new Date() })
       .onConflictDoUpdate({
         target: boats.id,
-        set: {
-          longName: boat.longName,
-          shortName: boat.shortName,
-          hwModel: boat.hwModel,
-          lastSeen: new Date(),
-        },
+        set: updateSet,
       })
       .returning();
     return result;

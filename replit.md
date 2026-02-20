@@ -7,7 +7,7 @@ Real-time boat GPS tracking system that receives position data from fishing boat
 - **Frontend**: React + TypeScript + Leaflet.js map with dark CARTO tiles
 - **Backend**: Express.js with Socket.io for real-time updates
 - **Database**: PostgreSQL for boat positions and metadata
-- **MQTT**: Connects to broker at 98.191.147.191:1883 (topics: msh/US/#, msh/2/#)
+- **MQTT**: Connects to broker at 98.191.147.191:1883 (topics: msh/US/#, msh/2/#, boats/#)
 
 ## Key Files
 - `shared/schema.ts` - Database schema (boats, boat_positions tables)
@@ -34,11 +34,15 @@ Real-time boat GPS tracking system that receives position data from fishing boat
 - `DELETE /api/boats/:id/logo` - Remove team logo
 
 ## MQTT Message Format
-- Position messages: `{ type: "position", sender: "!id", payload: { latitude_i, longitude_i, altitude, sats_in_view, time } }`
-- NodeInfo messages: `{ type: "nodeinfo", sender: "!id", payload: { longname, shortname, hardware } }` (lowercase field names from Meshtastic)
+- Position messages (msh/US/#, msh/2/#): `{ type: "position", sender: "!id", payload: { latitude_i, longitude_i, altitude, sats_in_view, time } }`
+- NodeInfo messages (msh/US/#, msh/2/#): `{ type: "nodeinfo", sender: "!id", payload: { longname, shortname, hardware } }` (lowercase field names from Meshtastic)
+- Custom firmware (boats/{boatId}): `{ id, name, lat, lon, alt, spd, crs, pitch, roll, yaw, sats, hdop, time, bat }` - all fields optional, lat/lon in decimal degrees
 - Coordinates are integers divided by 10,000,000 to get decimal degrees
 
 ## Recent Changes
+- 2026-02-20: Added boats/# MQTT topic for custom firmware with pitch, roll, battery_level, battery_voltage, and boat name
+- 2026-02-20: Added pitch, roll, batteryLevel, batteryVoltage columns to boats table and API responses
+- 2026-02-20: BoatInfoPanel displays pitch, roll, and battery data when available
 - 2026-02-11: Added broadcast overlay (/overlay) - full-screen map synced from Dashboard via BroadcastChannel for broadcast output
 - 2026-02-11: Added History page (/history) for viewing boat tracks by date with date picker and colored track lines
 - 2026-02-11: Updated /api/xpression to use Boats > BoatName > data structure for Xpression compatibility

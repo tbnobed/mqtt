@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Navigation, Satellite, Mountain, Clock, Waves, ArrowUp, Upload, X, ImageIcon } from "lucide-react";
+import { Navigation, Satellite, Mountain, Clock, Waves, ArrowUp, Upload, X, ImageIcon, RotateCw, Battery, Gauge } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -129,13 +129,13 @@ export default function BoatInfoPanel({ boat, trackPositions, color, onClose, on
         <InfoItem
           icon={<Navigation className="w-3.5 h-3.5" />}
           label="Latitude"
-          value={formatCoord(boat.latitude, "lat")}
+          value={formatCoord(boat.latitude)}
           testId="text-latitude"
         />
         <InfoItem
           icon={<Navigation className="w-3.5 h-3.5 rotate-90" />}
           label="Longitude"
-          value={formatCoord(boat.longitude, "lon")}
+          value={formatCoord(boat.longitude)}
           testId="text-longitude"
         />
         <InfoItem
@@ -162,6 +162,30 @@ export default function BoatInfoPanel({ boat, trackPositions, color, onClose, on
           value={getTimeSince(lastTs)}
           testId="text-last-update"
         />
+        {boat.pitch != null && (
+          <InfoItem
+            icon={<RotateCw className="w-3.5 h-3.5" />}
+            label="Pitch"
+            value={`${boat.pitch.toFixed(1)}°`}
+            testId="text-pitch"
+          />
+        )}
+        {boat.roll != null && (
+          <InfoItem
+            icon={<RotateCw className="w-3.5 h-3.5 rotate-90" />}
+            label="Roll"
+            value={`${boat.roll.toFixed(1)}°`}
+            testId="text-roll"
+          />
+        )}
+        {boat.batteryLevel != null && (
+          <InfoItem
+            icon={<Battery className="w-3.5 h-3.5" />}
+            label="Battery"
+            value={`${boat.batteryLevel}%${boat.batteryVoltage != null ? ` (${boat.batteryVoltage.toFixed(1)}V)` : ""}`}
+            testId="text-battery"
+          />
+        )}
       </div>
 
       {boat.hwModel && (

@@ -20,10 +20,18 @@ export async function registerRoutes(
       short_name TEXT NOT NULL DEFAULT '??',
       hw_model TEXT,
       logo_url TEXT,
-      last_seen TIMESTAMP
+      last_seen TIMESTAMP,
+      pitch DOUBLE PRECISION,
+      roll DOUBLE PRECISION,
+      battery_level INTEGER,
+      battery_voltage DOUBLE PRECISION
     )
   `);
   await db.execute(sql`ALTER TABLE boats ADD COLUMN IF NOT EXISTS logo_url TEXT`);
+  await db.execute(sql`ALTER TABLE boats ADD COLUMN IF NOT EXISTS pitch DOUBLE PRECISION`);
+  await db.execute(sql`ALTER TABLE boats ADD COLUMN IF NOT EXISTS roll DOUBLE PRECISION`);
+  await db.execute(sql`ALTER TABLE boats ADD COLUMN IF NOT EXISTS battery_level INTEGER`);
+  await db.execute(sql`ALTER TABLE boats ADD COLUMN IF NOT EXISTS battery_voltage DOUBLE PRECISION`);
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS boat_positions (
@@ -188,6 +196,10 @@ export async function registerRoutes(
             satellites: b.satellites ?? 0,
             speed: b.speed ?? 0,
             heading: b.heading ?? 0,
+            pitch: b.pitch ?? null,
+            roll: b.roll ?? null,
+            batteryLevel: b.batteryLevel ?? null,
+            batteryVoltage: b.batteryVoltage ?? null,
             timestamp: b.positionTimestamp
               ? new Date(b.positionTimestamp).toISOString()
               : null,

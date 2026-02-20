@@ -6,7 +6,7 @@ import type { Server as SocketServer } from "socket.io";
 const BROKER_URL = process.env.MQTT_BROKER_URL || "mqtt://98.191.147.191:1883";
 const MQTT_USERNAME = process.env.MQTT_USERNAME || "boat_tracker";
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD || "tbn123";
-const MQTT_TOPICS = (process.env.MQTT_TOPIC || "msh/US/#,msh/2/#").split(",").map(t => t.trim());
+const MQTT_TOPICS = (process.env.MQTT_TOPIC || "msh/US/#,msh/2/#,boats/#").split(",").map(t => t.trim());
 
 interface PositionPayload {
   latitude_i: number;
@@ -143,6 +143,98 @@ async function handlePositionMessage(sender: string, payload: PositionPayload) {
   log(`Position: ${sender} → ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (${speed.toFixed(1)} kts)`, "mqtt");
 }
 
+interface BoatTelemetryPayload {
+  id?: number | string;
+  name?: string;
+  lat?: number;
+  lon?: number;
+  alt?: number;
+  spd?: number;
+  crs?: number;
+  pitch?: number;
+  roll?: number;
+  yaw?: number;
+  sats?: number;
+  hdop?: number;
+  time?: number;
+  bat?: number;
+  battery_level?: number;
+  battery_voltage?: number;
+}
+
+async function handleBoatTelemetry(boatId: string, payload: BoatTelemetryPayload) {
+  const boatName = payload.name || boatId;
+  const shortName = boatName.length > 3 ? boatName.slice(0, 3).toUpperCase() : boatName;
+
+  const batteryVoltage = payload.bat ?? payload.battery_voltage ?? null;
+  const batteryLevel = payload.battery_level != null ? Math.round(payload.battery_level) : null;
+
+  await storage.upsertBoat({
+    id: boatId,
+    longName: boatName,
+    shortName,
+    pitch: payload.pitch ?? null,
+    roll: payload.roll ?? null,
+    batteryLevel,
+    batteryVoltage,
+  });
+
+  if (payload.lat != null && payload.lon != null) {
+    const latitude = payload.lat;
+    const longitude = payload.lon;
+
+    if (Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180 && !(latitude === 0 && longitude === 0)) {
+      const boat = await storage.getBoat(boatId);
+      if (!boat) {
+        await storage.upsertBoat({ id: boatId, longName: boatName, shortName });
+      }
+
+      let speed = payload.spd ?? 0;
+      let heading = payload.crs ?? 0;
+
+      const prev = lastPositions.get(boatId);
+      const currentTime = payload.time || Math.floor(Date.now() / 1000);
+
+      if (speed === 0 && prev) {
+        speed = calculateSpeed(prev.lat, prev.lng, prev.time, latitude, longitude, currentTime);
+        if (speed < 0.1) speed = 0;
+      }
+      if (heading === 0 && prev) {
+        heading = calculateHeading(prev.lat, prev.lng, latitude, longitude);
+        if (speed === 0) heading = 0;
+      }
+
+      lastPositions.set(boatId, { lat: latitude, lng: longitude, time: currentTime });
+
+      const position = await storage.insertPosition({
+        boatId,
+        latitude,
+        longitude,
+        altitude: payload.alt != null ? Math.round(payload.alt) : 0,
+        satellites: payload.sats ?? 0,
+        speed,
+        heading,
+        timestamp: (payload.time && payload.time > 1000000000) ? new Date(payload.time * 1000) : new Date(),
+      });
+
+      await storage.pruneOldPositions(boatId);
+
+      if (ioInstance) {
+        ioInstance.emit("boat:position", { boatId, position });
+      }
+
+      log(`Boat position: ${boatId} → ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (${speed.toFixed(1)} kts)`, "mqtt");
+    }
+  }
+
+  if (ioInstance) {
+    const allBoats = await storage.getAllBoatsWithPositions();
+    ioInstance.emit("boats:update", allBoats);
+  }
+
+  log(`Boat telemetry: ${boatId} → ${boatName} pitch=${payload.pitch ?? "N/A"} roll=${payload.roll ?? "N/A"} bat=${batteryVoltage ?? "N/A"}V`, "mqtt");
+}
+
 async function handleNodeInfoMessage(sender: string, payload: NodeInfoPayload) {
   await storage.upsertBoat({
     id: sender,
@@ -185,10 +277,17 @@ export function setupMQTT(io: SocketServer) {
     io.emit("mqtt:status", { connected: true });
   });
 
-  mqttClient.on("message", async (_topic, message) => {
+  mqttClient.on("message", async (topic, message) => {
     try {
       const raw = message.toString();
       const msg = JSON.parse(raw);
+
+      if (topic.startsWith("boats/")) {
+        const boatId = topic.split("/")[1] || msg.id || msg.sender;
+        if (!boatId) return;
+        await handleBoatTelemetry(boatId, msg);
+        return;
+      }
 
       if (!msg.type || !msg.sender) return;
 
