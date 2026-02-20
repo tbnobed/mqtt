@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Anchor, LogIn } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
+import sfcLogo from "@assets/sfc_1771621652377.png";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -33,7 +34,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4" data-testid="login-page">
       <Card className="w-full max-w-sm p-6 space-y-6">
         <div className="flex flex-col items-center gap-2">
-          <Anchor className="w-10 h-10 text-primary" />
+          <img src={sfcLogo} alt="SFC Logo" className="h-16 object-contain" data-testid="img-login-logo" />
           <h1 className="text-xl font-bold">Boat GPS Tracker</h1>
           <p className="text-sm text-muted-foreground">Sign in to continue</p>
         </div>
