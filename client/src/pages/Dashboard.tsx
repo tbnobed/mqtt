@@ -152,6 +152,13 @@ export default function Dashboard() {
                 boatColorMap={boatColorMap}
                 hiddenBoatIds={hiddenBoatIds}
                 onToggleVisibility={toggleBoatVisibility}
+                onDeleteBoat={async (id) => {
+                  try {
+                    await fetch(`/api/boats/${id}`, { method: "DELETE" });
+                    if (selectedBoatId === id) selectBoat(null);
+                    refreshBoats();
+                  } catch {}
+                }}
               />
             </div>
           </ScrollArea>

@@ -1,4 +1,5 @@
-import { Ship, Clock, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
+import { Ship, Clock, Eye, EyeOff, Battery, BatteryLow, BatteryMedium, BatteryFull, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { BoatData } from "@/lib/types";
@@ -11,9 +12,18 @@ interface BoatListProps {
   boatColorMap: Map<string, string>;
   hiddenBoatIds: Set<string>;
   onToggleVisibility: (id: string) => void;
+  onDeleteBoat?: (id: string) => void;
 }
 
-export default function BoatList({ boats, selectedBoatId, onSelectBoat, boatColorMap, hiddenBoatIds, onToggleVisibility }: BoatListProps) {
+function BatteryIcon({ level }: { level: number }) {
+  if (level <= 20) return <BatteryLow className="w-3.5 h-3.5 text-red-500" />;
+  if (level <= 50) return <BatteryMedium className="w-3.5 h-3.5 text-yellow-500" />;
+  return <BatteryFull className="w-3.5 h-3.5 text-green-500" />;
+}
+
+export default function BoatList({ boats, selectedBoatId, onSelectBoat, boatColorMap, hiddenBoatIds, onToggleVisibility, onDeleteBoat }: BoatListProps) {
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
   if (boats.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center" data-testid="text-no-boats">
@@ -31,6 +41,7 @@ export default function BoatList({ boats, selectedBoatId, onSelectBoat, boatColo
         const color = boatColorMap.get(boat.id) || "#3b82f6";
         const isSelected = selectedBoatId === boat.id;
         const isHidden = hiddenBoatIds.has(boat.id);
+        const isConfirmingDelete = confirmDeleteId === boat.id;
 
         return (
           <div
@@ -64,6 +75,12 @@ export default function BoatList({ boats, selectedBoatId, onSelectBoat, boatColo
                 <span className="text-sm font-medium truncate flex-1" data-testid={`text-boat-name-${boat.id}`}>
                   {boat.longName}
                 </span>
+                {boat.batteryLevel != null && (
+                  <span className="flex items-center gap-0.5 text-xs" data-testid={`text-battery-${boat.id}`}>
+                    <BatteryIcon level={boat.batteryLevel} />
+                    <span className="text-muted-foreground">{boat.batteryLevel}%</span>
+                  </span>
+                )}
                 <Badge
                   variant={offline ? "destructive" : "secondary"}
                   className="text-[10px] px-1.5 py-0"
@@ -83,19 +100,62 @@ export default function BoatList({ boats, selectedBoatId, onSelectBoat, boatColo
                 )}
               </div>
             </button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="shrink-0 mr-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleVisibility(boat.id);
-              }}
-              data-testid={`button-toggle-visibility-${boat.id}`}
-              title={isHidden ? "Show on map" : "Hide from map"}
-            >
-              {isHidden ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
-            </Button>
+            <div className="flex items-center shrink-0 mr-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleVisibility(boat.id);
+                }}
+                data-testid={`button-toggle-visibility-${boat.id}`}
+                title={isHidden ? "Show on map" : "Hide from map"}
+              >
+                {isHidden ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
+              </Button>
+              {isConfirmingDelete ? (
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-7 px-2 text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteBoat?.(boat.id);
+                      setConfirmDeleteId(null);
+                    }}
+                    data-testid={`button-confirm-delete-${boat.id}`}
+                  >
+                    Delete
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmDeleteId(null);
+                    }}
+                    data-testid={`button-cancel-delete-${boat.id}`}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmDeleteId(boat.id);
+                  }}
+                  data-testid={`button-delete-${boat.id}`}
+                  title="Delete boat"
+                >
+                  <Trash2 className="w-4 h-4 text-muted-foreground" />
+                </Button>
+              )}
+            </div>
           </div>
         );
       })}

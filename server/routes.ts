@@ -136,6 +136,25 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/boats/:id", async (req, res) => {
+    try {
+      const boatId = req.params.id as string;
+      const boat = await storage.getBoat(boatId);
+      if (!boat) return res.status(404).json({ error: "Boat not found" });
+
+      if (boat.logoUrl) {
+        const filePath = path.resolve("." + boat.logoUrl);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+
+      await storage.deleteBoat(boatId);
+      io.emit("boats:update", await storage.getAllBoatsWithPositions());
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/boats", async (_req, res) => {
     try {
       const allBoats = await storage.getAllBoatsWithPositions();
