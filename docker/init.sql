@@ -1,3 +1,5 @@
+DO $$ BEGIN CREATE TYPE user_role AS ENUM ('admin', 'user'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+
 CREATE TABLE IF NOT EXISTS boats (
   id VARCHAR(32) PRIMARY KEY,
   long_name TEXT NOT NULL DEFAULT 'Unknown',
@@ -25,3 +27,11 @@ CREATE TABLE IF NOT EXISTS boat_positions (
 
 CREATE INDEX IF NOT EXISTS idx_bp_boat_id ON boat_positions(boat_id);
 CREATE INDEX IF NOT EXISTS idx_bp_timestamp ON boat_positions(boat_id, timestamp DESC);
+
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(100) NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role user_role NOT NULL DEFAULT 'user',
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
