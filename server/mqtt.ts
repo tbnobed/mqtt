@@ -166,8 +166,8 @@ async function handleBoatTelemetry(boatId: string, payload: BoatTelemetryPayload
   const boatName = payload.name || boatId;
   const shortName = boatName.length > 3 ? boatName.slice(0, 3).toUpperCase() : boatName;
 
-  const batteryVoltage = payload.bat ?? payload.battery_voltage ?? null;
-  const batteryLevel = payload.battery_level != null ? Math.round(payload.battery_level) : null;
+  const batteryLevel = payload.bat != null ? Math.round(payload.bat) : (payload.battery_level != null ? Math.round(payload.battery_level) : null);
+  const batteryVoltage = payload.battery_voltage ?? null;
 
   await storage.upsertBoat({
     id: boatId,
