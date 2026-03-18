@@ -15,15 +15,18 @@ export function useBoats() {
     socket.on("connect", () => setConnected(true));
     socket.on("disconnect", () => setConnected(false));
 
+    const stableSort = (arr: BoatData[]) =>
+      [...arr].sort((a, b) => a.id.localeCompare(b.id));
+
     socket.on("boats:update", (data: BoatData[]) => {
-      setBoats(data);
+      setBoats(stableSort(data));
     });
 
     socket.on("boat:position", (data: { boatId: string; position: BoatPositionData }) => {
       setBoats((prev) => {
         const exists = prev.some((b) => b.id === data.boatId);
         if (!exists) {
-          return [
+          return stableSort([
             ...prev,
             {
               id: data.boatId,
@@ -87,7 +90,7 @@ export function useBoats() {
 
     fetch("/api/boats")
       .then((r) => r.json())
-      .then((data) => setBoats(data))
+      .then((data) => setBoats(stableSort(data)))
       .catch(() => {});
 
     return () => {

@@ -115,8 +115,9 @@ function computeOffsets(boats: BoatData[]): Map<string, [number, number]> {
 
   groups.forEach((group) => {
     const spread = 22;
-    group.forEach((boat, i) => {
-      const angle = (2 * Math.PI * i) / group.length - Math.PI / 2;
+    const sorted = [...group].sort((a, b) => a.id.localeCompare(b.id));
+    sorted.forEach((boat, i) => {
+      const angle = (2 * Math.PI * i) / sorted.length - Math.PI / 2;
       offsets.set(boat.id, [Math.cos(angle) * spread, Math.sin(angle) * spread]);
     });
   });
