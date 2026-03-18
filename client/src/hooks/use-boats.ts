@@ -43,7 +43,7 @@ export function useBoats() {
               heading: data.position.heading ?? undefined,
               positionTimestamp: data.position.timestamp,
             },
-          ];
+          ]);
         }
         return prev.map((b) =>
           b.id === data.boatId
